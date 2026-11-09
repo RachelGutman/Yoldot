@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מערכת ניהול מתנדבות — עזרה ליולדות</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* warm cream base, deep teal primary, peach highlight, status colors per the palette */
+  --bg:#faf7f5; --surface:#ffffff; --sub:#fdfbfa;
+  --ink:#2d2a32; --ink-2:#4a4650; --muted:#6e6873;
+  --line:#e7e1dc; --line-2:#f2eeea;
+  --accent:#0f766e; --accent-d:#0b5e57; --accent-l:#e6f3f2; --accent-ring:rgba(15,118,110,.22);
+  --peach:#f4a582; --peach-l:#fdf0e8;
+  --status-red:#dc2626; --status-amber:#fde68a; --status-green:#15803d; --status-gray:#64748b; --status-blue:#1e40af;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Heebo","Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--accent-d);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.ic{width:16px;height:16px;flex:0 0 auto;vertical-align:-3px;display:inline-block}
+
+/* layout */
+.app{display:flex;min-height:100vh}
+.side{width:236px;flex:0 0 236px;background:var(--surface);border-left:1px solid var(--line);padding:20px 12px;position:sticky;top:0;height:100vh;height:100dvh;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px;margin-bottom:4px}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;flex:0 0 34px}
+.brand-mark .ic{width:18px;height:18px;vertical-align:0}
+.brand h1{font-size:15px;margin:0;font-weight:600;line-height:1.3}
+.side .sub{font-size:12px;color:var(--muted);padding:0 8px 16px;margin:0}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:8px;color:var(--ink-2);text-decoration:none;font-size:14px;transition:background .18s var(--ease),color .18s var(--ease)}
+.nav a:hover{background:var(--sub);color:var(--ink)}
+.nav a.active{background:var(--accent-l);color:var(--accent-d);font-weight:600}
+.nav .ic{width:18px;height:18px;vertical-align:0;opacity:.85}
+.nav a.nav-cta,.nav a.nav-cta.active{height:42px;justify-content:center;margin-bottom:10px;background:var(--accent);color:#fff;font-weight:600;transition:background .18s var(--ease),transform .12s var(--ease)}
+.nav a.nav-cta:hover{background:var(--accent-d);color:#fff}
+.nav a.nav-cta:active{transform:scale(.98)}
+.nav a.nav-cta .ic{opacity:1}
+.nav-group{font-size:12px;color:var(--muted);margin:18px 10px 6px}
+.nav-acc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none}
+.nav-acc>summary::-webkit-details-marker{display:none}
+.nav-acc>summary::before{content:"▸";display:inline-block;transition:transform .2s var(--ease)}
+.nav-acc[open]>summary::before{transform:rotate(90deg)}
+.nav-acc #navActiveReqs a{padding-inline-start:26px;font-size:13px}
+
+.main{flex:1;min-width:0;padding:0 32px 56px}
+.topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 -32px 28px;padding:18px 32px;background:rgba(250,247,245,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar h2{margin:0;font-size:22px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+.crumbs{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-bottom:4px;min-height:16px}
+.crumbs .crumb{color:var(--muted);text-decoration:none}
+.crumbs a.crumb:hover{color:var(--ink);text-decoration:underline}
+.crumbs .crumb.cur{color:var(--ink-2);font-weight:500}
+.crumbs .sep{color:#a1a1aa}
+.badge-user{font-size:12px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);padding:6px 11px;border-radius:8px;white-space:nowrap}
+#viewRoot{max-width:1120px}
+
+/* KPI strip: one bordered container, hairline dividers instead of separate shadowed cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:24px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:20px;align-items:start}
+.dash-main{min-width:0}
+.dash-top{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap;margin-bottom:20px}
+.dash-top-attn{flex:1 1 360px;min-width:0;display:flex}
+.dash-top-attn .attn{flex:1;margin-bottom:0;min-width:0}
+.dash-top-actions{display:flex;flex-direction:column;justify-content:center;gap:8px;flex:0 0 220px}
+.dash-top-actions .btn{width:100%;justify-content:center}
+.dash-side{grid-template-columns:1fr;margin-bottom:0}
+.dash-side .kpi+.kpi{border-inline-start:none;border-top:1px solid var(--line-2)}
+.kpi{padding:18px 20px}
+.kpi+.kpi{border-inline-start:1px solid var(--line-2)}
+.kpi .lbl{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:8px}
+.kpi .val{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.kpi .val.small{font-size:17px;letter-spacing:0;line-height:1.3;margin-top:4px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:20px}
+.panel>h3:first-child{margin:-20px -20px 16px;padding:14px 20px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line-2)}
+.panel>.row-sp:first-child{margin:-20px -20px 16px;padding:14px 20px;border-bottom:1px solid var(--line-2)}
+.panel>.row-sp:first-child h3{margin:0;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:right;padding:12px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+th{color:var(--muted);font-weight:500;font-size:12px;padding-top:0;padding-bottom:10px;border-bottom:1px solid var(--line)}
+tbody tr{transition:background .18s var(--ease)}
+tbody tr:hover{background:var(--sub)}
+tbody tr:last-child td{border-bottom:none}
+.right{text-align:left}
+
+/* chips & status: small, square-ish, low saturation */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:500;margin:1px;line-height:1.6;white-space:nowrap}
+.chip .ic{width:13px;height:13px;vertical-align:-2px}
+.chip.g{background:#ecf5ee;color:#166534}
+.chip.y{background:#fdf6e7;color:#78350f}
+.chip.r{background:#fdf0f0;color:#9f1d1d}
+.chip.ship{background:#e0e9f7;color:#1e40af}
+.dash-flt.ship{color:#1e40af}
+.chip.b{background:#eef2f6;color:#334155}
+.chip.p{background:var(--accent-l);color:var(--accent-d)}
+.chip.gray{background:var(--sub);color:var(--muted);border:1px solid var(--line)}
+.chip.num{background:var(--sub);color:var(--ink-2);border:1px solid var(--line);font-variant-numeric:tabular-nums;min-width:26px;justify-content:center}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-start:6px;vertical-align:middle}
+.dot.g{background:#15803d}.dot.y{background:#f59e0b}.dot.r{background:#dc2626}
+.spill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.spill.r{background:#fdf0f0;color:#9f1d1d}
+.spill.y{background:#fdf6e7;color:#78350f}
+.spill.g{background:#ecf5ee;color:#166534}
+.spill .dot{margin:0}
+.tag-type{display:inline-block;font-size:12px;color:var(--ink-2);background:var(--sub);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin:2px}
+
+/* buttons: flat, one primary, tactile press */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:0 14px;font-size:14px;color:var(--ink);white-space:nowrap;transition:background .18s var(--ease),border-color .18s var(--ease),transform .12s var(--ease)}
+.btn.icon-only{padding:0 10px}
+.btn.icon-only .btx{display:none}
+.btn:hover{background:var(--sub);border-color:#d4d4d8}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-d);border-color:var(--accent-d)}
+.btn.sm{height:30px;padding:0 10px;font-size:13px;border-radius:7px}
+.btn.danger{color:#9f1d1d;border-color:#f0cccc}
+.btn.danger:hover{background:#fdf0f0}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--accent-d)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* forms: label above, error below, accent focus ring */
+label.f{display:block;font-size:13px;font-weight:500;color:var(--ink-2);margin:14px 0 6px}
+label.f .muted{font-weight:400}
+input,select,textarea{width:100%;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--surface);transition:border-color .18s var(--ease),box-shadow .18s var(--ease)}
+input[type=checkbox],input[type=radio]{width:auto;height:auto;accent-color:var(--accent)}
+textarea{height:auto;min-height:72px;padding:10px 12px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.form-grid .full{grid-column:1/-1}
+.filters label.f,.fgroup label.f{margin-top:0}
+.checks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.checks label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);padding:6px 11px;border-radius:8px;cursor:pointer;margin:0;transition:background .18s var(--ease),border-color .18s var(--ease)}
+.checks label:has(input:checked){border-color:var(--accent);background:var(--accent-l);color:var(--accent-d)}
+.checks input{width:auto}
+.cond{border-inline-start:2px solid var(--accent);padding:6px 16px 10px;margin:12px 0;background:var(--sub);border-radius:0 8px 8px 0}
+.cond h4{display:flex;align-items:center;gap:6px;margin:6px 0 4px;font-size:13px;font-weight:600;color:var(--accent-d)}
+input.err,select.err,textarea.err{border-color:#d92d20;box-shadow:0 0 0 3px rgba(217,45,32,.12)}
+.err-msg{color:#b42318;font-size:12px;margin-top:6px;display:flex;align-items:center;gap:6px}
+.err-msg .ic{width:14px;height:14px;vertical-align:0}
+.checks.err-box,#rf_types.err-box{outline:1px solid #d92d20;outline-offset:4px;border-radius:8px}
+
+/* alerts */
+.alert{padding:12px 14px;border-radius:8px;margin-bottom:12px;font-size:14px;display:flex;gap:10px;align-items:flex-start;border:1px solid}
+.alert .ic{width:18px;height:18px;vertical-align:0;margin-top:1px}
+.alert.r{background:#fdf0f0;border-color:#f3cccc;color:#7a1b1b}
+.alert.y{background:#fef9e7;border-color:#fde68a;color:#78350f}
+.alert.b{background:#eef2f6;border-color:#d5dde8;color:#2b3a4f}
+.alert .lk{margin-inline-start:auto;font-weight:600;white-space:nowrap}
+
+/* attention bar */
+.attn{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:20px}
+.attn-head{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none;border-radius:12px}
+.attn-head:hover{background:var(--sub)}
+.attn-head .ttl{font-size:14px;font-weight:600}
+.attn-head .counts{display:flex;gap:6px;margin-inline-end:auto}
+.attn-head .caret,.mbox-head .caret{color:var(--muted);transition:transform .25s var(--ease);display:flex}
+.attn.open .caret{transform:rotate(180deg)}
+.attn-body{display:none;border-top:1px solid var(--line-2)}
+.attn.open .attn-body{display:block}
+.attn-line{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:14px;border-bottom:1px solid var(--line-2)}
+.attn-line:last-child{border-bottom:none}
+.attn-line.r{border-inline-start:3px solid #d92d20}
+.attn-line.y{border-inline-start:3px solid #f59e0b}
+.attn-line.b{border-inline-start:3px solid #64748b}
+.attn-line .ic-w{width:18px;flex:0 0 18px;display:flex;justify-content:center}
+.attn-line .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attn-line .lk{font-weight:600;white-space:nowrap;color:var(--accent-d);text-decoration:none}
+.attn-empty{display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:14px;color:#166534}
+.cnt-pill{display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:1px 7px;border-radius:6px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.cnt-pill.r{background:#fdf0f0;color:#9f1d1d}
+.cnt-pill.y{background:#fdf6e7;color:#78350f}
+.cnt-pill.b{background:#eef2f6;color:#334155}
+.cnt-pill.ship{background:#e0e9f7;color:#1e40af}
+.cnt-pill.g{background:#ecf5ee;color:#166534}
+.dash-flts{display:flex;gap:6px;flex-wrap:wrap}
+.dash-flt{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);cursor:pointer;color:var(--ink-2)}
+.dash-flt:hover{background:var(--sub)}
+.dash-flt .ic{width:16px;height:16px;vertical-align:0}
+.dash-flt.on{background:var(--sub);box-shadow:inset 0 0 0 1px currentColor}
+.dash-flt.r{color:#9f1d1d}
+.dash-flt.y{color:#78350f}
+.dash-flt.g{color:#166534}
+.dash-flt .cnt-pill{min-width:20px;padding:0 6px;font-size:12px}
+
+/* collapsible match section inside request card */
+.mbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.mbox-head{display:flex;align-items:center;gap:10px;padding:14px 20px;cursor:pointer;user-select:none;font-weight:600;font-size:15px}
+.mbox-head:hover{background:var(--sub)}
+.mbox-head .caret{margin-inline-end:auto}
+.mbox.open .caret{transform:rotate(180deg)}
+.mbox-body{display:none;border-top:1px solid var(--line-2);padding:20px}
+.mbox.open .mbox-body{display:block}
+.mbox-sub{font-weight:400;font-size:13px;color:var(--muted)}
+.adv{margin:0 0 16px}
+.adv>summary{cursor:pointer;list-style:none;font-size:13px;font-weight:600;color:var(--accent-d);display:inline-flex;align-items:center;gap:6px;user-select:none}
+.adv>summary::-webkit-details-marker{display:none}
+.adv>summary::before{content:"▸";display:inline-block;transition:transform .2s var(--ease)}
+.adv[open]>summary::before{transform:rotate(90deg)}
+.adv>.fgroups{margin-top:10px}
+#viewRoot:has(.rc-wrap){max-width:none}
+.rc-wrap{display:flex;align-items:stretch;justify-content:space-between;gap:16px}
+.rc-req{flex:0 1 1052px;min-width:0}
+.rc-wrap:has(.mbox.open) .rc-req{flex:1 1 0}
+.rc-req>.panel:last-child{margin-bottom:0}
+.rc-wrap .mbox{margin:0;flex:0 0 52px;transition:flex-basis .3s var(--ease)}
+.rc-wrap .mbox.open{flex:0 0 66.66%;align-self:flex-start;position:sticky;top:88px;max-height:calc(100vh - 104px);overflow:auto}
+.rc-wrap .mbox:not(.open){display:flex;flex-direction:column;align-self:stretch}
+.rc-wrap .mbox:not(.open) .mbox-head{writing-mode:vertical-rl;direction:ltr;flex:1;padding:16px 0;justify-content:flex-start;cursor:pointer}
+.rc-wrap .mbox:not(.open) .mbox-head .caret,.rc-wrap .mbox:not(.open) .mbox-head .btn,.rc-wrap .mbox:not(.open) .mbox-title{display:none}
+.mbox-head .btn{margin-inline-start:auto}
+@media (max-width:900px){
+  .rc-wrap{flex-direction:column}
+  .rc-req{flex:none}
+  .rc-wrap .mbox,.rc-wrap .mbox.open{flex:none;width:100%;align-self:stretch;position:static;max-height:none}
+  .rc-wrap .mbox:not(.open) .mbox-head{writing-mode:horizontal-tb;direction:rtl;height:auto;padding:14px 20px}
+  .rc-wrap .mbox:not(.open) .mbox-head .caret{display:flex}
+}
+
+/* overflow menu */
+.menu-wrap{position:relative;display:inline-block}
+.menu-pop{display:none;position:absolute;left:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px -8px rgba(24,24,27,.16);min-width:160px;z-index:30;padding:4px}
+.menu-pop.open{display:block}
+.menu-pop button{display:flex;align-items:center;gap:8px;width:100%;text-align:start;border:none;background:none;padding:8px 10px;font-size:14px;border-radius:6px;color:var(--ink)}
+.menu-pop button:hover{background:var(--sub)}
+.menu-pop button.danger{color:#9f1d1d}
+.menu-pop button.danger:hover{background:#fdf0f0}
+
+/* empty states */
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty .em-ic{width:44px;height:44px;margin:0 auto 14px;border-radius:12px;background:var(--sub);border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-2)}
+.empty .em-ic .ic{width:20px;height:20px;vertical-align:0}
+.empty .em-ttl{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.empty .em-sub{font-size:14px;margin-bottom:16px}
+
+/* toolbar */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .search{position:relative;flex:1;min-width:220px}
+.toolbar .search input{padding-inline-end:36px}
+.toolbar .search .si{position:absolute;inset-inline-end:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;display:flex}
+.toolbar .search .si .ic{width:16px;height:16px;vertical-align:0}
+
+.filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px 16px;background:var(--sub);border:1px solid var(--line-2);padding:16px;border-radius:10px;margin-bottom:16px}
+.fgroups{display:flex;flex-direction:column;gap:14px;background:var(--sub);border:1px solid var(--line-2);padding:16px;border-radius:10px;margin-bottom:16px}
+.fgroup{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0 16px}
+.fgroup-lbl{grid-column:1/-1;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:-2px}
+.fgroup+.fgroup{border-top:1px solid var(--line);padding-top:14px}
+
+/* misc */
+.muted{color:var(--muted)}
+.hidden{display:none!important}
+.row-sp{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.match-score{font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.why{display:inline-flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.why .r{font-size:11px;font-weight:500;padding:1px 7px;border-radius:6px;background:var(--accent-l);color:var(--accent-d);white-space:nowrap}
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.inv-cell{border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+.inv-cell .k{font-size:13px;color:var(--muted)}
+.inv-cell .v{font-size:24px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.note-row{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--muted);margin:0 0 10px}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(24,24,27,.35);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;animation:fade .18s ease-out}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:24px;box-shadow:0 24px 48px -16px rgba(24,24,27,.22);animation:rise .28s var(--ease)}
+.modal h3{margin:0 0 6px;font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px}
+.modal-foot{display:flex;gap:8px;justify-content:flex-start;margin-top:20px;flex-wrap:wrap}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+
+/* toast */
+.toast{position:fixed;bottom:24px;inset-inline-start:24px;background:var(--ink);color:#fff;padding:12px 14px 12px 18px;border-radius:10px;z-index:99;opacity:0;transform:translateY(8px);transition:opacity .25s var(--ease),transform .25s var(--ease);font-size:14px;display:flex;align-items:center;gap:14px;pointer-events:none}
+.toast.show{opacity:1;transform:none;pointer-events:auto}
+.toast .undo{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:7px;padding:4px 10px;font-size:13px;font-weight:500}
+.toast .undo:hover{background:rgba(255,255,255,.12)}
+
+/* responsive */
+@media(max-width:760px){
+  .app{flex-direction:column}
+  .side{width:auto;flex:0 0 auto;height:auto;position:static;border-left:none;border-bottom:1px solid var(--line);padding:14px 16px}
+  .side .sub{padding-bottom:10px}
+  .nav{flex-direction:row;flex-wrap:wrap;gap:4px}
+  .nav a{height:34px}
+  .nav-group{width:100%;margin:10px 0 2px}
+  .main{padding:0 16px 40px}
+  .topbar{margin:0 -16px 20px;padding:14px 16px}
+  .topbar h2{font-size:18px}
+  .form-grid{grid-template-columns:1fr}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .dash-grid{grid-template-columns:1fr}
+  .kpi+.kpi{border-inline-start:none;border-top:1px solid var(--line-2)}
+  .panel{overflow-x:auto}
+}
+.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;align-items:center;justify-content:center}
+.login-overlay.show{display:flex}
+.login-box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px;width:min(360px,90vw)}
+.login-box h2{margin:0 0 8px;font-size:20px}
+.login-err{color:var(--status-red);font-size:13px;min-height:18px;margin-top:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <span class="brand-mark"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z"/></svg></span>
+      <h1>עזרה ליולדות</h1>
+    </div>
+    <div class="sub">מערכת ניהול מתנדבות</div>
+    <div class="sub" style="display:flex;justify-content:space-between;align-items:center"><span id="saveStatus"></span><a href="#" onclick="doLogout();return false" style="color:var(--accent)">התנתקות</a></div>
+    <nav class="nav" id="nav" role="navigation">
+      <a data-view="request" href="#" class="nav-cta"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> בקשת עזרה חדשה</a>
+      <a data-view="dashboard" class="active" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg> בית</a>
+      <details class="nav-acc" open>
+        <summary class="nav-group">בקשות פעילות</summary>
+        <div id="navActiveReqs"></div>
+      </details>
+      <a data-view="volunteers" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.6.2 5 1.6 5 4.8"/></svg> מתנדבות</a>
+      <a data-view="history" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/></svg> היסטוריית בקשות</a>
+      <div class="nav-group">ניהול</div>
+      <a data-view="types" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="7.5" r="1.25"/></svg> סוגי התנדבות</a>
+      <a data-view="settings" href="#"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg> כשרויות ומלאי צהרון</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="crumbs" id="crumbs"></div>
+        <h2 id="viewTitle">בית</h2>
+      </div>
+      <span class="badge-user">רכזת · גישה מלאה</span>
+    </div>
+    <div id="viewRoot"></div>
+  </main>
+</div>
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+<div id="loginOverlay" class="login-overlay">
+  <form class="login-box" onsubmit="doLogin(event)">
+    <h2>עזרה ליולדות</h2>
+    <label class="f" for="loginPass">סיסמה</label>
+    <input type="password" id="loginPass" autocomplete="current-password" required>
+    <div id="loginErr" class="login-err" role="alert"></div>
+    <button class="btn primary" type="submit" style="width:100%;margin-top:14px">כניסה</button>
+  </form>
+</div>
+<script>
+/* ============================================================
+   DATA MODEL — client-side cache of server state (/api/state)
+   ============================================================ */
+const _now = new Date();
+const TODAY = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate()); // local midnight so a request ending today stays active
+const TODAY_STR = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}-${String(TODAY.getDate()).padStart(2,'0')}`;
+
+let DB = null;
+let reqSeq = 200, volSeq = 100, _stateVersion = 0;
+
+
+/* ============================================================
+   ICONS (inline SVG, 1.6 stroke, standardized)
+   ============================================================ */
+const IC = {
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  chev:'<path d="M6 9l6 6 6-6"/>',
+  more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  bell:'<path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 004 0"/>',
+  alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>',
+  truck:'<path d="M2 6h12v10H2zM14 10h4l3 3v3h-7"/><circle cx="6" cy="17.5" r="1.5"/><circle cx="17" cy="17.5" r="1.5"/>',
+  box:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+  bowl:'<path d="M3 11h18c0 5-4 8-9 8s-9-3-9-8z"/><path d="M8 7c0-1 1-2 1-3M12 7c0-1 1-2 1-3M16 7c0-1 1-2 1-3"/>',
+  smile:'<circle cx="12" cy="12" r="9"/><path d="M8.5 14a4 4 0 007 0"/><path d="M9 10h.01M15 10h.01"/>',
+  sparkle:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+  star:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2-4.5-4.4 6.2-.9z"/>',
+  snow:'<path d="M12 2v20M3.5 7l17 10M20.5 7l-17 10"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  restore:'<path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6"/><path d="M3 4v4h4"/>',
+  undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>',
+  pin:'<path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  walk:'<circle cx="13" cy="4" r="2"/><path d="M7 21l3-7 2 2 1-5-3-2-3 3M11 14l2 3 1 4M16 9l2 4"/>',
+  users:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.6.2 5 1.6 5 4.8"/>',
+  archive:'<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/>',
+  tag:'<path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="7.5" r="1.25"/>',
+  sliders:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  msg:'<path d="M4 5h16v11H9l-5 4V5z"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
+  inbox:'<path d="M3 13l3-8h12l3 8v6H3z"/><path d="M3 13h5l1 2h6l1-2h5"/>',
+  pencil:'<path d="M4 20h4L19 9l-4-4L4 16v4z"/>',
+};
+function ic(name){ return `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[name]}</svg>`; }
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $ = (s,el=document)=>el.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const parseD = s => new Date(s+'T00:00:00');
+const fmtD = s => { if(!s) return '—'; const d=parseD(s); return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; };
+const typeName = id => (DB.types.find(t=>t.id===id)||{}).name || id;
+const volById = id => id==='tzaharon' ? {id:'tzaharon',name:'צהרון'} : DB.volunteers.find(v=>v.id===id);
+const DAYS = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+const FREQ = ['יומי','שבועי','חד-פעמי','אין העדפה'];
+
+let _toastTimer=null, _undoFn=null;
+function toast(msg, undoFn){
+  const t=$('#toast'); _undoFn = undoFn||null;
+  t.innerHTML = `<span>${esc(msg)}</span>` + (undoFn?`<button class="undo" onclick="runUndo()">${ic('undo')} ביטול</button>`:'');
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>{ t.classList.remove('show'); _undoFn=null; }, undoFn?5000:2200);
+}
+function runUndo(){ const fn=_undoFn; _undoFn=null; $('#toast').classList.remove('show'); clearTimeout(_toastTimer); if(fn){ fn(); persist(); } }
+// overflow menu: toggle one open at a time; close on outside click / Escape
+function toggleMenu(ev, id){ ev.stopPropagation(); const el=document.getElementById(id); const open=el.classList.contains('open'); closeMenus(); if(!open) el.classList.add('open'); }
+function closeMenus(){ document.querySelectorAll('.menu-pop.open').forEach(m=>m.classList.remove('open')); }
+document.addEventListener('click', closeMenus);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeMenus(); } });
+// inline validation helpers (#3)
+function clearErrors(root=document){ root.querySelectorAll('.err').forEach(e=>e.classList.remove('err')); root.querySelectorAll('.err-msg').forEach(e=>e.remove()); root.querySelectorAll('.err-box').forEach(e=>e.classList.remove('err-box')); }
+function fieldError(el, msg){
+  if(!el) return;
+  el.classList.add('err');
+  const m=document.createElement('div'); m.className='err-msg'; m.innerHTML=`${ic('alert')} ${esc(msg)}`;
+  el.insertAdjacentElement('afterend', m);
+}
+function focusFirstError(root=document){ const e=root.querySelector('.err'); if(e){ e.focus?.(); e.scrollIntoView({behavior:'smooth',block:'center'}); } }
+function closeModal(){ $('#modalRoot').innerHTML=''; }
+function showModal(html){ $('#modalRoot').innerHTML = `<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`; fitButtons(); }
+// buttons with an icon and text switch to icon-only (text moves to tooltip) when they don't fit
+function fitButtons(){
+  document.querySelectorAll('.btn').forEach(b=>{
+    if(!b.querySelector('svg') || b.querySelector('.btx')) return;
+    const tn=[...b.childNodes].find(n=>n.nodeType===3 && n.textContent.trim());
+    if(!tn) return;
+    const label=tn.textContent.trim();
+    const s=document.createElement('span'); s.className='btx'; s.textContent=label;
+    tn.replaceWith(s);
+    if(!b.title) b.title=label;
+  });
+  const btns=[...document.querySelectorAll('.btn .btx')].map(s=>s.parentElement);
+  btns.forEach(b=>b.classList.remove('icon-only'));
+  btns.forEach(b=>b.classList.toggle('icon-only', noRoom(b)));
+}
+function noRoom(b){
+  const box=b.closest('.panel,.modal,.mbox,.attn,.toolbar,.dash-top,.dash-top-actions,.modal-foot,.row-sp') || b.parentElement;
+  const cs=getComputedStyle(box), bx=box.getBoundingClientRect(), r=b.getBoundingClientRect();
+  const left=bx.left+parseFloat(cs.paddingLeft), right=bx.right-parseFloat(cs.paddingRight);
+  if(r.right>right+1 || r.left<left-1) return true;
+  const p=b.parentElement, first=p.firstElementChild;
+  return getComputedStyle(p).flexWrap!=='nowrap' && first && r.top>first.getBoundingClientRect().top+1;
+}
+window.addEventListener('resize', fitButtons);
+
+// request lifecycle (rule 13): active if TODAY within [from,to]
+function reqIsActive(r){ return parseD(r.to) >= TODAY; }
+const DASH = {status:null, ship:false};
+function setDashFilter(k,v){
+  const wasOn = DASH[k]===v;
+  DASH.status = null; DASH.ship = false;
+  if(!wasOn) DASH[k] = v;
+  go('dashboard');
+}
+function daysBetween(a,b){ return Math.round((parseD(a)-parseD(b))/86400000); }
+
+// 7-day rolling window overlap (rule 3) — is volunteer busy near given request dates
+function overlaps7(aFrom,aTo,bFrom,bTo){
+  const af=parseD(aFrom), at=parseD(aTo), bf=parseD(bFrom).getTime()-7*864e5, bt=parseD(bTo).getTime()+7*864e5;
+  return af.getTime()<=bt && at.getTime()>=bf;
+}
+function isVolBusy(vid, req){
+  return DB.requests.some(r=> r.id!==req.id &&
+    r.assignments.some(a=>a.vid===vid && a.state==='active') &&
+    overlaps7(r.from,r.to,req.from,req.to));
+}
+
+// assignment coverage (rule 6): full when every requested type covered by an active assignment
+function neededTypes(r){ return r.types.slice(); }
+function coveredTypes(r){
+  const cov = new Set();
+  r.assignments.filter(a=>a.state==='active').forEach(a=>cov.add(a.type));
+  return cov;
+}
+function deliveryGap(r){
+  // meal (cook) assignment flagged needDeliver without an active deliver assignment
+  const needs = r.assignments.some(a=>a.state==='active' && (a.type==='cook'||a.vid==='tzaharon') && a.needDeliver);
+  const hasDeliver = r.assignments.some(a=>a.state==='active' && a.type==='deliver');
+  return needs && !hasDeliver;
+}
+function assignStatus(r){ // returns 'none'|'partial'|'full'
+  if(r.manualFull) return 'full';
+  const need = neededTypes(r), cov = coveredTypes(r);
+  const active = r.assignments.filter(a=>a.state==='active').length;
+  if(active===0) return 'none';
+  let allCov = need.every(t=>cov.has(t));
+  if(deliveryGap(r)) allCov=false;
+  return allCov ? 'full' : 'partial';
+}
+const STATUS_META = {none:{dot:'r',txt:'לא שובץ',chip:'r'},partial:{dot:'y',txt:'שובץ חלקית',chip:'y'},full:{dot:'g',txt:'שובץ מלא',chip:'g'}};
+
+function volStatusChip(v){
+  const m={active:['g','פעילה'],frozen:['gray','מוקפאת'],frozen_until:['y','מוקפאת עד '+fmtD(v.frozenUntil)],deleted:['r','נמחקה']}[v.status];
+  return `<span class="chip ${m[0]}">${m[1]}</span>`;
+}
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+const VIEWS = {};
+let current = 'dashboard';
+const TITLES = {dashboard:'בית',volunteers:'מתנדבות',request:'בקשת עזרה חדשה',history:'היסטוריית בקשות',types:'סוגי התנדבות',settings:'כשרויות ומלאי צהרון',reqcard:'כרטיס בקשה'};
+// which nav item stays highlighted for drill-down views that aren't in the nav
+const NAV_OWNER = {reqcard:'dashboard', request:'request'};
+// build breadcrumb trail: array of {label, view?, arg?}
+function crumbTrail(view, arg){
+  const home = {label:'בית', view:'dashboard'};
+  if(view==='dashboard') return [];
+  const r = (view==='reqcard') ? DB.requests.find(x=>x.id===arg) : null;
+  switch(view){
+    case 'reqcard': return [home, {label:'בקשות', view:'dashboard'}, {label:r?r.name:'בקשה'}];
+    case 'request': return arg ? [home, {label:'בקשות', view:'dashboard'}, {label:'עריכת בקשה'}] : [home, {label:'בקשה חדשה'}];
+    default: return [home, {label:TITLES[view]||''}];
+  }
+}
+function renderCrumbs(view, arg){
+  const trail = crumbTrail(view, arg);
+  $('#crumbs').innerHTML = trail.map((c,i)=>{
+    const last = i===trail.length-1;
+    const sep = i>0 ? '<span class="sep">›</span>' : '';
+    if(last || !c.view) return `${sep}<span class="crumb${last?' cur':''}">${esc(c.label)}</span>`;
+    return `${sep}<a class="crumb" href="#" onclick="go('${c.view}'${c.arg!=null?','+JSON.stringify(c.arg):''});return false">${esc(c.label)}</a>`;
+  }).join('');
+}
+function viewTitle(view, arg){
+  const r = (view==='reqcard') ? DB.requests.find(x=>x.id===arg) : null;
+  if(view==='reqcard') return r ? r.name : 'כרטיס בקשה';
+  if(view==='request') return arg ? 'עריכת בקשה' : 'בקשת עזרה חדשה';
+  return TITLES[view]||'';
+}
+function go(view, arg){
+  current = view;
+  $('#viewTitle').textContent = viewTitle(view, arg);
+  renderCrumbs(view, arg);
+  renderNavActiveReqs();
+  const navActive = NAV_OWNER[view] || view;
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('active', view==='reqcard' ? (a.dataset.view==='reqcard' && +a.dataset.arg===arg) : a.dataset.view===navActive));
+  $('#viewRoot').innerHTML = VIEWS[view] ? VIEWS[view](arg) : '<div class="panel">לא נמצא</div>';
+  if(AFTER[view]) AFTER[view](arg);
+  fitButtons();
+  $('#viewRoot').scrollTop=0; window.scrollTo(0,0);
+}
+const AFTER = {};
+function renderNavActiveReqs(){
+  const list = DB.requests.filter(reqIsActive);
+  $('#navActiveReqs').innerHTML = list.map(r=>`<a data-view="reqcard" data-arg="${r.id}" href="#">${esc(r.name)}</a>`).join('');
+}
+document.getElementById('nav').addEventListener('click', e=>{
+  const a=e.target.closest('a'); if(a){ e.preventDefault(); go(a.dataset.view, a.dataset.arg?+a.dataset.arg:undefined); }
+});
+document.getElementById('nav').addEventListener('keydown', e=>{
+  if(e.key==='Enter'||e.key===' '){ const a=e.target.closest('a'); if(a){ e.preventDefault(); go(a.dataset.view, a.dataset.arg?+a.dataset.arg:undefined); } }
+});
+
+/* views are registered in the next script block */
+</script>
+<script>
+/* ============================================================
+   3.4 DASHBOARD
+   ============================================================ */
+function kpiCounts(){
+  let month=0, year=0; const perVolMonth={}, perVolYear={};
+  DB.requests.forEach(r=>r.assignments.forEach(a=>{
+    if(a.state!=='active' || a.vid==='tzaharon') return; // rule 12.1 tzaharon not counted
+    const d=parseD(r.from);
+    if(d.getFullYear()===TODAY.getFullYear()){ year++; perVolYear[a.vid]=(perVolYear[a.vid]||0)+1;
+      if(d.getMonth()===TODAY.getMonth()){ month++; perVolMonth[a.vid]=(perVolMonth[a.vid]||0)+1; } }
+  }));
+  const top = o => { let id=null,n=0; for(const k in o) if(o[k]>n){n=o[k];id=k;} return id?{v:volById(+id),n}:null; };
+  return {month,year,topMonth:top(perVolMonth),topYear:top(perVolYear)};
+}
+VIEWS.dashboard = () => {
+  const k = kpiCounts();
+  const active = DB.requests.filter(reqIsActive);
+  const total = DB.requests.length;
+  // collect attention items (severity: r > y > b)
+  const items=[];
+  // deleted volunteer still active in future (rule 2.2)
+  DB.requests.filter(reqIsActive).forEach(r=>r.assignments.forEach(a=>{
+    const v=volById(a.vid);
+    if(a.state==='active' && v && v.status==='deleted')
+      items.push({sev:'r',ic:ic('alert'),txt:`מתנדבת <b>${esc(v.name)}</b> (נמחקה) משובצת כפעילה ב<b>${esc(r.name)}</b>`,lk:`בטל שיבוץ ←`,rid:r.id});
+  }));
+
+  const bySev=s=>items.filter(i=>i.sev===s).length;
+  const order={r:0,y:1,b:2};
+  items.sort((a,b)=>order[a.sev]-order[b.sev]);
+  const startOpen = bySev('r')>0; // auto-expand only when something critical
+  const counts=['r','y','b'].filter(s=>bySev(s)).map(s=>`<span class="cnt-pill ${s}">${bySev(s)}</span>`).join('');
+  const attn = items.length ? `
+  <div class="attn ${startOpen?'open':''}" id="attnBar">
+    <div class="attn-head" onclick="document.getElementById('attnBar').classList.toggle('open')">
+      <span style="display:flex">${ic('bell')}</span><span class="ttl">דורש טיפול</span>
+      <span class="counts">${counts}</span>
+      <span class="caret">${ic('chev')}</span>
+    </div>
+    <div class="attn-body">
+      ${items.map(i=>`<div class="attn-line ${i.sev}"><span class="ic-w">${i.ic}</span><span class="txt">${i.txt}</span>${i.rid?`<a class="lk" href="#" onclick="go('reqcard',${i.rid});return false">${i.lk}</a>`:''}</div>`).join('')}
+    </div>
+  </div>` : `<div class="attn"><div class="attn-empty">${ic('check')} הכל מטופל — אין פריטים הדורשים התייחסות</div></div>`;
+
+  const stCount = s => active.filter(r=>assignStatus(r)===s).length;
+  const shipCount = active.filter(deliveryGap).length;
+  const visible = active.filter(r=>(!DASH.status||assignStatus(r)===DASH.status) && (!DASH.ship||deliveryGap(r)));
+  const dfBtn = (key,val,count,cls,iconHtml,label) => `<button class="dash-flt ${cls} ${DASH[key]===val?'on':''}" title="${label}" aria-label="${label}" aria-pressed="${DASH[key]===val}" onclick="setDashFilter('${key}',${typeof val==='string'?`'${val}'`:val})">${iconHtml}<span class="cnt-pill ${cls}">${count}</span></button>`;
+  const fltHtml = `<div class="dash-flts">
+    ${dfBtn('status','none',stCount('none'),'r',ic('alert'),'לא שובץ')}
+    ${dfBtn('status','partial',stCount('partial'),'y','<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>','שובץ חלקית')}
+    ${dfBtn('ship',true,shipCount,'ship',ic('truck'),'נדרש שינוע')}
+    ${dfBtn('status','full',stCount('full'),'g',ic('check'),'שובץ מלא')}
+  </div>`;
+  const rows = visible.map(r=>{
+    const st=assignStatus(r); const s=STATUS_META[st];
+    const dFromToday = daysBetween(r.from, TODAY_STR);
+    const near = dFromToday<=2 && dFromToday>=0;
+    return `<tr>
+      <td><a href="#" onclick="go('reqcard',${r.id});return false"><b>${esc(r.name)}</b></a> ${near?'<span class="chip r">קרוב</span>':''}</td>
+      <td class="muted">${esc(r.address)}</td>
+      <td>${r.types.map(t=>`<span class="tag-type">${esc(typeName(t))}</span>`).join(' ')||'<span class="muted">—</span>'}</td>
+      <td><span class="spill ${s.chip}"><span class="dot ${s.dot}"></span>${s.txt}</span>${deliveryGap(r)?` <span class="chip ship">${ic('truck')}</span>`:''}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="dash-top">
+    <div class="dash-top-attn">${attn}</div>
+    <div class="dash-top-actions">
+      <button class="btn primary" onclick="go('request')">${ic('plus')} בקשה חדשה</button>
+      <button class="btn" onclick="go('volunteers')">${ic('users')} רשימת המתנדבות</button>
+    </div>
+  </div>
+  <div class="dash-grid">
+  <div class="dash-main">
+  <div class="panel">
+    <div class="row-sp">
+      <h3>${ic('list')} בקשות פעילות <span class="muted" style="font-weight:400">(${visible.length})</span></h3>
+      ${fltHtml}
+    </div>
+    ${rows
+      ? `<table><thead><tr><th>משפחה</th><th>כתובת</th><th>צרכים מבוקשים</th><th>סטטוס שיבוץ</th></tr></thead><tbody>${rows}</tbody></table>`
+      : `<div class="empty"><div class="em-ic">${ic('inbox')}</div><div class="em-ttl">${active.length?'אין בקשות התואמות לסינון':'אין בקשות פעילות כרגע'}</div><div class="em-sub">${active.length?'נסי לבטל את הסימון באייקונים שלמעלה.':'כשתיקלט בקשה חדשה היא תופיע כאן.'}</div><button class="btn primary" onclick="go('request')">${ic('plus')} בקשה חדשה</button></div>`}
+  </div>
+  ${tzInventoryPanelHtml()}
+  </div>
+  <div class="cards dash-side">
+    <div class="kpi"><div class="lbl">התנדבויות החודש</div><div class="val">${k.month}</div></div>
+    <div class="kpi"><div class="lbl">התנדבויות השנה</div><div class="val">${k.year}</div></div>
+    <div class="kpi"><div class="lbl">סך בקשות</div><div class="val">${total}</div><div class="muted" style="font-size:12px">${active.length} פעילות</div></div>
+    <div class="kpi"><div class="lbl">${ic('star')} מצטיינת החודש</div><div class="val small">${k.topMonth?esc(k.topMonth.v.name):'—'}</div><div class="muted" style="font-size:12px">${k.topMonth?k.topMonth.n+' התנדבויות':''}</div></div>
+    <div class="kpi"><div class="lbl">${ic('star')} מצטיינת השנה</div><div class="val small">${k.topYear?esc(k.topYear.v.name):'—'}</div><div class="muted" style="font-size:12px">${k.topYear?k.topYear.n+' התנדבויות':''}</div></div>
+  </div>
+  </div>`;
+};
+
+/* ============================================================
+   3.1 VOLUNTEERS LIST
+   ============================================================ */
+let VQ = {text:'', type:'', status:'active'};
+function volRowHtml(v){
+  return `<tr>
+    <td><b>${esc(v.name)}</b></td>
+    <td class="muted">${esc(v.phone)}</td>
+    <td class="muted">${esc(v.address)}</td>
+    <td>${v.types.map(t=>`<span class="tag-type">${esc(typeName(t))}</span>`).join('')}</td>
+    <td>${volStatusChip(v)}</td>
+    <td class="right"><span class="chip num">${v.last3m}</span></td>
+    <td class="right"><span class="chip num">${v.total}</span></td>
+    <td class="right"><div class="btn-row" style="justify-content:flex-start">
+      <button class="btn sm" onclick="openVolForm(${v.id})">${ic('pencil')} עריכה</button>
+      <div class="menu-wrap">
+        <button class="btn sm" aria-label="פעולות נוספות" onclick="toggleMenu(event,'vm${v.id}')">${ic('more')}</button>
+        <div class="menu-pop" id="vm${v.id}">
+          <button onclick="closeMenus();freezeVol(${v.id})">${v.status==='active'?ic('snow')+' הקפאה':ic('sun')+' הפשרה'}</button>
+          <button class="danger" onclick="closeMenus();deleteVol(${v.id})">${ic('trash')} מחיקה</button>
+        </div>
+      </div>
+    </div></td></tr>`;
+}
+function volMatches(v){
+  if(VQ.type && !v.types.includes(VQ.type)) return false;
+  if(VQ.status && v.status!==VQ.status) return false;
+  if(VQ.text){ const hay=(v.name+' '+v.phone+' '+v.address+' '+(v.note||'')+' '+(v.other?.desc||'')).toLowerCase(); if(!hay.includes(VQ.text.toLowerCase())) return false; }
+  return true;
+}
+VIEWS.volunteers = () => {
+  const deleted = DB.volunteers.filter(v=>v.status==='deleted');
+  const activeTypes = DB.types.filter(t=>t.active);
+  return `
+  <div class="panel">
+    <div class="row-sp"><h3>${ic('users')} רשימת המתנדבות <span class="muted" id="volCount" style="font-weight:400"></span></h3>
+      <button class="btn primary" onclick="openVolForm()">${ic('plus')} מתנדבת חדשה</button></div>
+    <div class="toolbar">
+      <div class="search"><input id="vq_text" value="${esc(VQ.text)}" placeholder="חיפוש לפי שם / טלפון / כתובת / הערות" oninput="VQ.text=this.value;renderVolList()"><span class="si">${ic('search')}</span></div>
+      <select id="vq_type" onchange="VQ.type=this.value;renderVolList()" style="width:auto;min-width:170px"><option value="">כל הסוגים</option>${activeTypes.map(t=>`<option value="${t.id}" ${VQ.type===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select>
+      <select id="vq_status" onchange="VQ.status=this.value;renderVolList()" style="width:auto;min-width:150px"><option value="">כל הסטטוסים</option><option value="active" ${VQ.status==='active'?'selected':''}>פעילה</option><option value="frozen" ${VQ.status==='frozen'?'selected':''}>מוקפאת</option><option value="frozen_until">מוקפאת עד תאריך</option></select>
+    </div>
+    <div id="volListBody"></div>
+    <p class="note-row">${ic('info')} "3 ח׳" = התנדבויות ב-3 חודשים אחרונים · "סה״כ" = סך כל ההתנדבויות (רק שיבוצים פעילים; צהרון לא נספר).</p>
+  </div>
+  ${deleted.length?`<div class="panel">
+    <h3>${ic('trash')} מתנדבות שנמחקו <span class="muted" style="font-weight:400">(${deleted.length})</span></h3>
+    <table><tbody>${deleted.map(v=>`<tr><td><b>${esc(v.name)}</b></td><td class="muted">${esc(v.note)}</td><td class="muted">סה״כ ${v.total} התנדבויות נשמרו</td><td class="right"><button class="btn sm" onclick="restoreVol(${v.id})">${ic('restore')} שחזור</button></td></tr>`).join('')}</tbody></table>
+  </div>`:''}`;
+};
+AFTER.volunteers = () => renderVolList();
+function renderVolList(){
+  const list = DB.volunteers.filter(v=>v.status!=='deleted' && volMatches(v));
+  const cnt=$('#volCount'); if(cnt) cnt.textContent=`(${list.length})`;
+  const hasFilter = VQ.text||VQ.type||VQ.status;
+  const body = list.length
+    ? `<table><thead><tr><th>שם</th><th>טלפון</th><th>כתובת</th><th>סוגי התנדבות</th><th>סטטוס</th><th class="right">3 ח׳</th><th class="right">סה״כ</th><th></th></tr></thead>
+       <tbody>${list.map(volRowHtml).join('')}</tbody></table>`
+    : `<div class="empty"><div class="em-ic">${ic(hasFilter?'search':'users')}</div>
+        <div class="em-ttl">${hasFilter?'לא נמצאו מתנדבות':'אין עדיין מתנדבות'}</div>
+        <div class="em-sub">${hasFilter?'נסי לשנות את תנאי החיפוש או לאפס את המסננים.':'הוסיפי מתנדבת ראשונה כדי להתחיל.'}</div>
+        ${hasFilter?`<button class="btn" onclick="resetVolFilters()">${ic('restore')} איפוס מסננים</button>`:`<button class="btn primary" onclick="openVolForm()">${ic('plus')} מתנדבת חדשה</button>`}</div>`;
+  $('#volListBody').innerHTML = body;
+}
+function resetVolFilters(){ VQ={text:'',type:'',status:'active'}; go('volunteers'); }
+
+function futureAssignments(vid){
+  const out=[];
+  DB.requests.filter(reqIsActive).forEach(r=>r.assignments.forEach(a=>{
+    if(a.vid===vid && a.state==='active') out.push(r);
+  }));
+  return out;
+}
+function blockedByFutureAssignment(id, action){
+  const reqs=futureAssignments(id);
+  if(!reqs.length) return false;
+  const v=volById(id);
+  const links=reqs.map(r=>`<li><a href="#" onclick="closeModal();go('reqcard',${r.id});return false">${esc(r.name)}</a></li>`).join('');
+  showModal(`<h3>${ic('alert')} לא ניתן ${action} — ${esc(v.name)}</h3>
+    <p>למתנדבת יש שיבוץ פעיל/עתידי בבקשה/ות הבאה/ות:</p>
+    <ul>${links}</ul>
+    <div class="modal-foot" style="justify-content:flex-end"><button class="btn" onclick="closeModal()">${ic('x')} סגירה</button></div>`);
+  return true;
+}
+function freezeVol(id){
+  if(blockedByFutureAssignment(id,'להקפיא')) return;
+  const v=volById(id);
+  showModal(`<h3>${ic('snow')} הקפאת מתנדבת — ${esc(v.name)}</h3>
+    <label class="f">סוג הקפאה</label>
+    <select id="frzType" onchange="$('#frzUntilWrap').classList.toggle('hidden',this.value!=='until')">
+      <option value="indef">הקפאה (ללא הגבלת זמן)</option>
+      <option value="until">הקפאה עד תאריך</option>
+    </select>
+    <div id="frzUntilWrap" class="hidden"><label class="f">מוקפאת עד</label><input type="date" id="frzUntil" value="2026-12-01"></div>
+    <div class="modal-foot">
+      <button class="btn primary" onclick="applyFreeze(${id})">${ic('check')} אישור</button>
+      <button class="btn" onclick="closeModal()">${ic('x')} ביטול</button>
+      ${v.status!=='active'?`<button class="btn ghost" onclick="applyUnfreeze(${id})">${ic('sun')} הפשרה (חזרה לפעילה)</button>`:''}
+    </div>`);
+}
+function applyFreeze(id){
+  const v=volById(id); const t=$('#frzType').value;
+  const prev={status:v.status, frozenUntil:v.frozenUntil};
+  if(t==='until'){ v.status='frozen_until'; v.frozenUntil=$('#frzUntil').value; }
+  else { v.status='frozen'; v.frozenUntil=null; }
+  closeModal(); go('volunteers');
+  toast('המתנדבת הוקפאה', ()=>{ Object.assign(v,prev); go('volunteers'); toast('ההקפאה בוטלה'); });
+}
+function applyUnfreeze(id){ const v=volById(id); const prev={status:v.status, frozenUntil:v.frozenUntil};
+  v.status='active'; v.frozenUntil=null; closeModal(); go('volunteers');
+  toast('המתנדבת הופשרה', ()=>{ Object.assign(v,prev); go('volunteers'); toast('ההפשרה בוטלה'); }); }
+function deleteVol(id){
+  if(blockedByFutureAssignment(id,'למחוק')) return;
+  const v=volById(id);
+  showModal(`<h3>${ic('trash')} מחיקת מתנדבת</h3><p>${esc(v.name)} תועבר לסטטוס "נמחקה". ההיסטוריה (${v.total} התנדבויות) תישמר וניתן לשחזר.</p>
+    <div class="modal-foot"><button class="btn danger" onclick="confirmDelete(${id})">${ic('trash')} מחיקה רכה</button><button class="btn" onclick="closeModal()">${ic('x')} ביטול</button></div>`);
+}
+function confirmDelete(id){ const v=volById(id); const prev=v.status; v.status='deleted'; closeModal(); go('volunteers');
+  toast('המתנדבת הועברה לסטטוס "נמחקה"', ()=>{ v.status=prev; go('volunteers'); toast('המחיקה בוטלה'); }); }
+function restoreVol(id){ const v=volById(id); v.status='active'; go('volunteers'); toast('המתנדבת שוחזרה'); }
+
+/* --- volunteer add/edit form (2.1) --- */
+function openVolForm(id){
+  const v = id ? volById(id) : {name:'',phone:'',address:'',types:[],kashrut:[],status:'active',note:'',cook:{},babysit:{},deliver:{},other:{}};
+  const activeTypes = DB.types.filter(t=>t.active);
+  const typeChecks = activeTypes.map(t=>`<label><input type="checkbox" class="vtype" value="${t.id}" ${v.types.includes(t.id)?'checked':''} onchange="renderVolCond()"> ${esc(t.name)}</label>`).join('');
+  const kashChecks = DB.kashrut.map(k=>`<label><input type="checkbox" class="vkash" value="${esc(k)}" ${v.kashrut.includes(k)?'checked':''}> ${esc(k)}</label>`).join('');
+  showModal(`<h3>${ic('users')} ${id?'עריכת':'הוספת'} מתנדבת</h3>
+    <div class="form-grid">
+      <div class="full"><label class="f">שם מלא *</label><input id="vf_name" value="${esc(v.name)}"></div>
+      <div class="full"><label class="f">כתובת מלאה * <span class="muted">(לחישוב זמן הליכה)</span></label><input id="vf_address" value="${esc(v.address)}"></div>
+      <div><label class="f">טלפון *</label><input id="vf_phone" value="${esc(v.phone)}"></div>
+      <div><label class="f">מייל</label><input type="email" id="vf_email" value="${esc(v.email||'')}"></div>
+    </div>
+    <label class="f">סוגי התנדבות * <span class="muted">(ניתן לבחור כמה)</span></label>
+    <div class="checks" id="vf_types">${typeChecks}</div>
+    <div id="volCond"></div>
+    <label class="f">כשרויות שהמתנדבת מספקת/מעדיפה <span class="muted">(ריק=הכל)</span></label>
+    <div class="checks">${kashChecks}</div>
+    <label class="f">הערות</label><textarea id="vf_note">${esc(v.note||'')}</textarea>
+    <label class="f">סטטוס</label><select id="vf_status">
+      <option value="active" ${v.status==='active'?'selected':''}>פעילה</option>
+      <option value="frozen" ${v.status==='frozen'?'selected':''}>מוקפאת</option>
+      <option value="frozen_until" ${v.status==='frozen_until'?'selected':''}>מוקפאת עד תאריך</option>
+    </select>
+    <div class="modal-foot"><button class="btn primary" onclick="saveVol(${id||'null'})">${ic('check')} שמירה</button><button class="btn" onclick="closeModal()">${ic('x')} ביטול</button></div>`);
+  window.__volDraft = v;
+  renderVolCond();
+}
+function renderVolCond(){
+  const v = window.__volDraft;
+  const sel = [...document.querySelectorAll('.vtype:checked')].map(c=>c.value);
+  let h='';
+  if(sel.includes('cook')){ const c=v.cook||{};
+    { const noPref = c.people==='אין העדפה' || c.people==null || c.people===''; const numVal = (c.people!=null && c.people!=='אין העדפה')?c.people:'';
+    h+=`<div class="cond"><h4>${ic('bowl')} בישול ארוחות</h4><div class="form-grid">
+      <div><label class="f">כמות נפשות</label>
+        <input type="number" id="ck_people" value="${esc(numVal)}" min="1" ${noPref?'disabled':''} placeholder="מספר נפשות">
+        <label style="font-size:13px;margin-top:8px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ck_people_any" ${noPref?'checked':''} onchange="document.getElementById('ck_people').disabled=this.checked"> אין העדפה</label>
+      </div>
+      <div><label class="f">תדירות</label><select id="ck_freq">${FREQ.map(f=>`<option ${c.freq===f?'selected':''}>${f}</option>`).join('')}</select></div>
+      <div class="full"><label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ck_deliver" ${c.alwaysDeliver?'checked':''}> נדרש שינוע תמיד (אין אפשרות להסיע בעצמה)</label></div>
+    </div></div>`; } }
+  if(sel.includes('babysit')){ const b=v.babysit||{};
+    h+=`<div class="cond"><h4>${ic('smile')} שמירה על ילדים</h4>
+      <label class="f">ימים אפשריים</label><div class="checks">${DAYS.map(d=>`<label><input type="checkbox" class="bs_day" value="${d}" ${(b.days||[]).includes(d)?'checked':''}> ${d}</label>`).join('')}</div>
+      <div class="form-grid"><div><label class="f">שעה מ-</label><input type="time" id="bs_from" value="${b.from||'08:00'}"></div>
+      <div><label class="f">שעה עד-</label><input type="time" id="bs_to" value="${b.to||'14:00'}"></div></div></div>`; }
+  if(sel.includes('deliver')){ const d=v.deliver||{};
+    h+=`<div class="cond"><h4>${ic('truck')} שינוע ארוחות</h4><div class="form-grid">
+      <div><label class="f">תדירות</label><select id="dl_freq">${FREQ.map(f=>`<option ${d.freq===f?'selected':''}>${f}</option>`).join('')}</select></div>
+      <div><label class="f">הערות שינוע</label><input id="dl_note" value="${esc(d.note||'')}" placeholder="אזור/רכב/מגבלות"></div></div></div>`; }
+  if(sel.includes('other')){ const o=v.other||{};
+    h+=`<div class="cond"><h4>${ic('sparkle')} אחר</h4><label class="f">תיאור חופשי</label><textarea id="ot_desc" placeholder="במה מעוניינת לעזור / מה שנצרך">${esc(o.desc||'')}</textarea></div>`; }
+  $('#volCond').innerHTML=h;
+}
+function saveVol(id){
+  clearErrors($('.modal'));
+  const name=$('#vf_name').value.trim();
+  const phone=$('#vf_phone').value.trim();
+  const address=$('#vf_address').value.trim();
+  const types=[...document.querySelectorAll('.vtype:checked')].map(c=>c.value);
+  let bad=false;
+  if(!name){ fieldError($('#vf_name'),'חובה להזין שם מלא'); bad=true; }
+  if(!phone){ fieldError($('#vf_phone'),'חובה להזין טלפון'); bad=true; }
+  if(!address){ fieldError($('#vf_address'),'חובה להזין כתובת'); bad=true; }
+  if(!types.length){ const box=$('#vf_types'); if(box){ box.classList.add('err-box'); box.insertAdjacentHTML('afterend',`<div class="err-msg">${ic('alert')} יש לבחור לפחות סוג התנדבות אחד</div>`); } bad=true; }
+  if(bad){ focusFirstError($('.modal')); return; }
+  const kashrut=[...document.querySelectorAll('.vkash:checked')].map(c=>c.value);
+  const status=$('#vf_status').value;
+  const rec = {name, phone:$('#vf_phone').value, email:$('#vf_email').value.trim(), address:$('#vf_address').value, types, kashrut, status,
+    frozenUntil:status==='frozen_until'?'2026-12-01':null, note:$('#vf_note').value};
+  if(types.includes('cook')) rec.cook={people:$('#ck_people_any')?.checked?'אין העדפה':($('#ck_people').value||'אין העדפה'),freq:$('#ck_freq').value,alwaysDeliver:$('#ck_deliver').checked};
+  if(types.includes('babysit')) rec.babysit={days:[...document.querySelectorAll('.bs_day:checked')].map(c=>c.value),from:$('#bs_from').value,to:$('#bs_to').value};
+  if(types.includes('deliver')) rec.deliver={freq:$('#dl_freq').value,note:$('#dl_note').value};
+  if(types.includes('other')) rec.other={desc:$('#ot_desc').value};
+  if(id){ Object.assign(volById(id),rec); }
+  else { DB.volunteers.push(Object.assign({id:++volSeq,last3m:0,total:0,walkMin:Math.floor(Math.random()*15)+2},rec)); }
+  closeModal(); go('volunteers'); toast('המתנדבת נשמרה');
+}
+
+/* ============================================================
+   3.2 NEW HELP REQUEST
+   ============================================================ */
+VIEWS.request = (editId) => {
+  const r = editId ? DB.requests.find(x=>x.id===editId) : {name:'',address:'',children:1,from:'2026-11-05',to:'2026-11-10',types:[],kashrut:[],tzaharon:'מעונין',note:''};
+  window.__reqDraft = r;
+  const activeTypes = DB.types.filter(t=>t.active && t.id!=='deliver');
+  return `<div class="panel" style="max-width:720px">
+    <h3>${ic('plus')} ${editId?'עריכת':'קליטת'} בקשת עזרה</h3>
+    <div class="form-grid">
+      <div><label class="f">שם המשפחה / היולדת *</label><input id="rf_name" value="${esc(r.name)}"></div>
+      <div><label class="f">מספר ילדים *</label><input type="number" id="rf_children" value="${r.children}" min="0"></div>
+      <div class="full"><label class="f">כתובת מלאה * <span class="muted">(לחישוב זמן הליכה)</span></label><input id="rf_address" value="${esc(r.address)}"></div>
+      <div><label class="f">טלפון</label><input id="rf_phone" value="${esc(r.phone||'')}"></div>
+      <div><label class="f">טלפון נוסף</label><input id="rf_phone2" value="${esc(r.phone2||'')}"></div>
+      <div><label class="f">מתאריך *</label><input type="date" id="rf_from" value="${r.from}"></div>
+      <div><label class="f">עד תאריך *</label><input type="date" id="rf_to" value="${r.to}"></div>
+    </div>
+    <label class="f">סוג/י הבקשה * <span class="muted">(ניתן לבחור כמה)</span></label>
+    <div id="rf_types">${activeTypes.map(t=>`<div class="rt-item"><div class="checks"><label><input type="checkbox" class="rtype" value="${t.id}" ${r.types.includes(t.id)?'checked':''} onchange="renderTypeCond('${t.id}')"> ${esc(t.name)}</label></div><div class="tcond" data-tc="${t.id}"></div></div>`).join('')}</div>
+    <label class="f">כשרויות מועדפות של המשפחה <span class="muted">(ריק = אין העדפה)</span></label>
+    <div class="checks">${DB.kashrut.map(k=>`<label><input type="checkbox" class="rkash" value="${esc(k)}" ${r.kashrut.includes(k)?'checked':''}> ${esc(k)}</label>`).join('')}</div>
+    <label class="f">קבלת ארוחה מצהרון *</label>
+    <select id="rf_tzaharon"><option value="מעונין" ${r.tzaharon==='מעונין'?'selected':''}>מעוניינים</option><option value="מתנגד" ${r.tzaharon==='מתנגד'?'selected':''}>יש התנגדות</option></select>
+    <label class="f">הערות</label><textarea id="rf_note">${esc(r.note||'')}</textarea>
+    <div class="modal-foot" style="justify-content:flex-end"><button class="btn primary" onclick="saveReq(${editId||'null'})">${ic('check')} שמירה ומעבר לשידוך ←</button>
+      <button class="btn" onclick="go('dashboard')">${ic('x')} ביטול</button></div>
+  </div>`;
+};
+AFTER.request = () => renderReqCond();
+function typeCondHtml(id){
+  const r = window.__reqDraft||{};
+  if(id==='babysit')
+    return `<div class="cond"><h4>${ic('smile')} שמירה על ילדים</h4><div class="form-grid">
+      <div><label class="f">שעות (מ--עד)</label><input id="rc_hours" value="${esc(r.babysitHours||'08:00-13:00')}"></div>
+      <div><label class="f">גילאי הילדים</label><input id="rc_ages" value="${esc(r.babysitAges||'')}" placeholder="לדוגמה: 2, 4"></div></div></div>`;
+  if(id==='other')
+    return `<div class="cond"><h4>${ic('sparkle')} אחר</h4><label class="f">תיאור חופשי — מה נדרש</label><textarea id="rc_other">${esc(r.otherDesc||'')}</textarea></div>`;
+  return '';
+}
+function renderTypeCond(id){
+  const on=document.querySelector(`.rtype[value="${id}"]`)?.checked;
+  const slot=document.querySelector(`.tcond[data-tc="${id}"]`);
+  if(slot) slot.innerHTML = on ? typeCondHtml(id) : '';
+}
+function renderReqCond(){
+  document.querySelectorAll('.tcond').forEach(s=>renderTypeCond(s.dataset.tc));
+}
+function saveReq(editId){
+  clearErrors($('#viewRoot'));
+  const name=$('#rf_name').value.trim();
+  const address=$('#rf_address').value.trim();
+  const from=$('#rf_from').value, to=$('#rf_to').value;
+  const types=[...document.querySelectorAll('.rtype:checked')].map(c=>c.value);
+  let bad=false;
+  if(!name){ fieldError($('#rf_name'),'חובה להזין שם משפחה'); bad=true; }
+  if(!address){ fieldError($('#rf_address'),'חובה להזין כתובת'); bad=true; }
+  if(from && to && parseD(to) < parseD(from)){ fieldError($('#rf_to'),'תאריך הסיום חייב להיות אחרי תאריך ההתחלה'); bad=true; }
+  if(!types.length){ const box=$('#rf_types'); if(box){ box.classList.add('err-box'); box.insertAdjacentHTML('afterend',`<div class="err-msg">${ic('alert')} יש לבחור לפחות סוג בקשה אחד</div>`); } bad=true; }
+  if(bad){ focusFirstError($('#viewRoot')); return; }
+  const rec={name, address:$('#rf_address').value, children:+$('#rf_children').value,
+    phone:$('#rf_phone').value.trim(), phone2:$('#rf_phone2').value.trim(),
+    from:$('#rf_from').value, to:$('#rf_to').value, types,
+    kashrut:[...document.querySelectorAll('.rkash:checked')].map(c=>c.value),
+    tzaharon:$('#rf_tzaharon').value, note:$('#rf_note').value};
+  if(types.includes('babysit')){ rec.babysitHours=$('#rc_hours').value; rec.babysitAges=$('#rc_ages').value; }
+  if(types.includes('other')) rec.otherDesc=$('#rc_other').value;
+  let id;
+  if(editId){ const r=DB.requests.find(x=>x.id===editId); Object.assign(r,rec); id=editId; }
+  else { id=++reqSeq; DB.requests.push(Object.assign({id,manualFull:false,assignments:[],notes:[]},rec)); }
+  toast('הבקשה נשמרה'); openMatch(id);
+}
+
+/* ============================================================
+   3.3 SEARCH & MATCHING
+   ============================================================ */
+// match UI state, persisted across reqcard re-renders (so the panel doesn't collapse / lose filters)
+let MATCH = {reqId:null, open:false, f:null};
+let matchShownFor = null;
+function defaultFilters(r){ return {walk:20, ref:r.address, type:'', kash:'', avail:'window', status:'active', max:99, text:''}; }
+function ensureMatch(r, open){
+  if(MATCH.reqId!==r.id){ MATCH = {reqId:r.id, open:!!open, f:defaultFilters(r)}; }
+  else if(open){ MATCH.open = true; }
+}
+function toggleMatch(){ MATCH.open = !MATCH.open; $('#matchBox').classList.toggle('open', MATCH.open); if(MATCH.open) applyFilters(); }
+// open request card with the match section expanded (entry point from dashboard / after save)
+function openMatch(reqId){ const r=DB.requests.find(x=>x.id===reqId); matchShownFor=reqId; ensureMatch(r,true); MATCH.open=true; go('reqcard',reqId); const b=$('#matchBox'); if(b){ b.classList.add('open'); b.scrollIntoView({behavior:'smooth',block:'start'}); } }
+
+// collapsible match section embedded in the request card
+function matchSectionHtml(r){
+  if(matchShownFor!==r.id) return '';
+  const f = MATCH.f;
+  return `
+  <div class="mbox ${MATCH.open?'open':''}" id="matchBox">
+    <div class="mbox-head" onclick="toggleMatch()" title="חיפוש ושידוך מתנדבות">
+      ${ic('search')}<span class="mbox-title">חיפוש ושידוך מתנדבות</span>
+      <span class="caret">${ic('chev')}</span>
+      <button class="btn sm ghost" onclick="event.stopPropagation();toggleMatch()" title="סגירה" aria-label="סגירה">${ic('x')}</button>
+    </div>
+    <div class="mbox-body">
+      <h3 style="font-size:14px;font-weight:600;margin:0 0 8px">סינון <span class="muted" style="font-weight:400;font-size:12px">· ברירת המחדל נגזרת מהבקשה</span></h3>
+      <div class="fgroups">
+        <div class="fgroup">
+          <div><label class="f">סוג התנדבות</label><select id="fl_type" onchange="applyFilters()"><option value="">הכל</option>${DB.types.map(t=>`<option value="${t.id}" ${f.type===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div>
+          <div><label class="f">כשרות</label><select id="fl_kash" onchange="applyFilters()"><option value="">הכל</option>${DB.kashrut.map(k=>`<option ${f.kash===k?'selected':''}>${esc(k)}</option>`).join('')}</select></div>
+        </div>
+        <details class="adv">
+        <summary>סינון מתקדם</summary>
+        <div class="fgroups">
+          <div class="fgroup">
+            <span class="fgroup-lbl">${ic('pin')} מיקום</span>
+            <div><label class="f">קרבה (דק׳ הליכה)</label><input type="number" id="fl_walk" value="${f.walk}" oninput="applyFilters()"></div>
+            <div><label class="f">נקודת ייחוס (כתובת)</label><input id="fl_ref" value="${esc(f.ref)}" oninput="applyFilters()"></div>
+          </div>
+          <div class="fgroup">
+            <span class="fgroup-lbl">${ic('sliders')} התאמה נוספת</span>
+            <div><label class="f">מקס׳ פניות (3ח׳)</label><input type="number" id="fl_max" value="${f.max}" oninput="applyFilters()"></div>
+            <div><label class="f">טקסט חופשי</label><input id="fl_text" value="${esc(f.text)}" placeholder="שם / הערות / תיאור" oninput="applyFilters()"></div>
+          </div>
+          <div class="fgroup">
+            <span class="fgroup-lbl">${ic('calendar')} זמינות וסטטוס</span>
+            <div><label class="f">זמינות</label><select id="fl_avail" onchange="applyFilters()"><option value="window" ${f.avail==='window'?'selected':''}>חלון 7 ימים</option><option value="day" ${f.avail==='day'?'selected':''}>יום ממוקד</option></select></div>
+            <div><label class="f">סטטוס מתנדבת</label><select id="fl_status" onchange="applyFilters()"><option value="active" ${f.status==='active'?'selected':''}>פעילות בלבד</option><option value="all" ${f.status==='all'?'selected':''}>כולל מוקפאות</option></select></div>
+          </div>
+        </div>
+        </details>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn sm" style="margin-inline-start:auto" onclick="resetFilters()">${ic('restore')} איפוס מסננים</button></div>
+      </div>
+      <h3 style="font-size:14px;font-weight:600;margin:20px 0 8px">תוצאות <span class="muted" id="resCount" style="font-weight:400"></span></h3>
+      <div id="results"></div>
+    </div>
+  </div>`;
+}
+function resetFilters(){ const r=window.__searchReq; MATCH.f = defaultFilters(r); go('reqcard', r.id); }
+
+function matchScore(v, r){
+  // ranking (3.3.2): 1 fewer requests, 2 distance, 3 type match, 4 kashrut
+  let score = 1000;
+  score -= v.last3m*50;              // fewer requests preferred
+  score -= v.walkMin*5;              // closer preferred
+  const typeMatch = r.types.some(t=>v.types.includes(t));
+  if(typeMatch) score += 60;
+  const kashMatch = r.kashrut.length && v.kashrut.some(k=>r.kashrut.includes(k));
+  if(kashMatch) score += 40;
+  return {score, typeMatch, kashMatch};
+}
+
+function applyFilters(){
+  const r = window.__searchReq;
+  if(!$('#results')) return; // match section collapsed / not rendered
+  const f = {
+    walk:+($('#fl_walk')?.value||99), ref:$('#fl_ref')?.value||'',
+    type:$('#fl_type')?.value||'', kash:$('#fl_kash')?.value||'',
+    avail:$('#fl_avail')?.value||'window', status:$('#fl_status')?.value||'active',
+    max:+($('#fl_max')?.value||99), text:($('#fl_text')?.value||'').trim()
+  };
+  MATCH.f = f; // persist so re-render keeps filter state
+  const isOther = r.types.includes('other');
+  let cands = DB.volunteers.filter(v=>{
+    if(v.status==='deleted') return false;
+    // status filter / exclude frozen (rule 1,3)
+    const frozenNow = v.status==='frozen' || (v.status==='frozen_until');
+    if(f.status==='active' && frozenNow) return false;
+    // type: for "other" request, include anyone nearby OR who marked other (note in 3.3.1)
+    if(!isOther){
+      const need = f.type ? [f.type] : r.types;
+      if(!need.some(t=>v.types.includes(t))) return false;
+    } else {
+      const nearby = v.walkMin <= f.walk;
+      if(!v.types.includes('other') && !nearby) return false;
+    }
+    if(f.type && !v.types.includes(f.type)) return false;
+    if(f.kash && !v.kashrut.includes(f.kash)) return false;
+    if(v.walkMin > f.walk) return false;
+    if(v.last3m > f.max) return false;
+    // availability (busy within 7d window — rule 3)
+    if(f.avail==='window' && isVolBusy(v.id, r)) return false;
+    if(f.text){ const hay=(v.name+' '+(v.note||'')+' '+(v.other?.desc||'')).toLowerCase(); if(!hay.includes(f.text.toLowerCase())) return false; }
+    return true;
+  });
+  const scored = cands.map(v=>({v,...matchScore(v,r)})).sort((a,b)=>b.score-a.score);
+  // ranking transparency (#8): contextual "why" reasons relative to the candidate set
+  const minLoad = cands.length ? Math.min(...cands.map(v=>v.last3m)) : 0;
+  const minWalk = cands.length ? Math.min(...cands.map(v=>v.walkMin)) : 0;
+  scored.forEach(s=>{
+    const why=[];
+    if(s.v.last3m===minLoad) why.push(s.v.last3m===0?'פנויה — 0 פניות':'הכי פנויה');
+    if(s.v.walkMin===minWalk) why.push('הכי קרובה');
+    if(s.typeMatch) why.push('מתאימה לסוג');
+    if(s.kashMatch) why.push('כשרות תואמת');
+    s.why=why;
+  });
+
+  // tzaharon option (3.3.1): request includes cook + family interested + stock>0 in matching kashrut
+  let tzaharonHtml='';
+  if(r.types.includes('cook') && r.tzaharon==='מעונין'){
+    const kashList = r.kashrut.length ? r.kashrut : Object.keys(DB.tzaharon.inventory);
+    const avail = kashList.filter(k=>(DB.tzaharon.inventory[k]||0)>0);
+    if(avail.length){
+      tzaharonHtml = `<div class="alert b">${ic('box')} <span><b>צהרון זמין</b> — מלאי: ${avail.map(k=>`${esc(k)}=${DB.tzaharon.inventory[k]}`).join(', ')}.</span>
+        <a class="lk" href="#" onclick="assignTzaharon(${r.id});return false">שבץ צהרון ←</a></div>`;
+    } else {
+      tzaharonHtml = `<div class="alert y">${ic('box')} המשפחה מעוניינת בצהרון אך אין מלאי בכשרות המבוקשת.</div>`;
+    }
+  } else if(r.types.includes('cook') && r.tzaharon==='מתנגד'){
+    tzaharonHtml = `<p class="note-row">${ic('info')} למשפחה יש התנגדות לצהרון — לא יוצע.</p>`;
+  }
+
+  const alreadyIds = new Set(r.assignments.map(a=>a.vid));
+  const rows = scored.map((s,i)=>{
+    const v=s.v; const inList=alreadyIds.has(v.id);
+    const whyHtml = s.why.length ? `<div class="why">${s.why.map(w=>`<span class="r">${esc(w)}</span>`).join('')}</div>` : '';
+    return `<tr>
+      <td class="right"><span class="match-score">${i+1}</span></td>
+      <td><b>${esc(v.name)}</b> ${v.status!=='active'?volStatusChip(v):''}<div class="muted" style="font-size:12px">${esc(v.address)}</div>${whyHtml}</td>
+      <td>${v.types.map(t=>`<span class="tag-type">${esc(typeName(t))}</span>`).join('')} ${s.typeMatch?`<span class="chip g">${ic('check')} סוג</span>`:''}</td>
+      <td class="right"><span class="muted" style="display:inline-flex;gap:4px;align-items:center">${ic('walk')} ${v.walkMin*80} מ׳</span></td>
+      <td class="right"><span class="chip num">${v.last3m}</span></td>
+      <td>${v.kashrut.join(', ')||'<span class="muted">—</span>'} ${s.kashMatch?`<span class="chip g">${ic('check')}</span>`:''}</td>
+      <td class="right">${inList?'<span class="chip gray">כבר משובץ</span>':`<button class="btn sm primary" onclick="addToReq(${r.id},${v.id})">${ic('plus')} שבץ</button>`}</td>
+    </tr>`;
+  }).join('');
+
+  $('#resCount').textContent = `(${scored.length} מתנדבות)`;
+  const rankNote = scored.length ? `<p class="note-row">מדורג לפי: פחות פניות ← קרבה ← התאמת סוג ← כשרות. התגיות מסבירות מדוע כל מתנדבת דורגה.</p>` : '';
+  const emptyHtml = `<div class="empty"><div class="em-ic">${ic('search')}</div>
+    <div class="em-ttl">לא נמצאו מתנדבות מתאימות</div>
+    <div class="em-sub">נסי לעבור ל"יום ממוקד", להגדיל את מרחק ההליכה, או להקל על המסננים.</div>
+    <button class="btn" onclick="resetFilters()">${ic('restore')} איפוס מסננים</button></div>`;
+  $('#results').innerHTML = tzaharonHtml + rankNote + (rows
+    ? `<table><thead><tr><th class="right">#</th><th>מתנדבת</th><th>סוגים</th><th class="right">הליכה (מטרים)</th><th class="right">3ח׳</th><th>כשרות</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    : emptyHtml);
+}
+
+function addToReq(reqId, vid){
+  const r=DB.requests.find(x=>x.id===reqId);
+  if(r.assignments.some(a=>a.vid===vid)){ toast('כבר ברשימה'); return; }
+  r.assignments.push({vid, state:'optional', type:null, when:'', needDeliver:false, portions:null});
+  toast('נוספה כאופציונלית'); refreshAssigned(r); applyFilters();
+}
+// refresh the assigned-list + coverage in place (no full re-render → no scroll jump)
+function refreshAssigned(r){
+  const body=$('#assignBody'); if(body) body.innerHTML = assignRowsHtml(r);
+  const cnt=$('#assignCount'); if(cnt) cnt.textContent = `(${r.assignments.length})`;
+  const cov=$('#coverLine'); if(cov) cov.innerHTML = coverLineHtml(r);
+}
+function assignTzaharon(reqId){
+  const r=DB.requests.find(x=>x.id===reqId);
+  const kashList=(r.kashrut.length?r.kashrut:Object.keys(DB.tzaharon.inventory)).filter(k=>DB.tzaharon.inventory[k]>0);
+  showModal(`<h3>${ic('box')} שיבוץ צהרון</h3>
+    <label class="f">תאריך השיבוץ</label><input type="date" id="tz_date" value="${r.from}" min="${r.from}" max="${r.to}">
+    <label class="f">כשרות</label><select id="tz_kash" onchange="tzCapQty()">${kashList.map(k=>`<option>${esc(k)} (מלאי ${DB.tzaharon.inventory[k]})</option>`).join('')}</select>
+    <label class="f">מספר מנות להקצאה</label><input type="number" id="tz_qty" value="1" min="1" max="${DB.tzaharon.inventory[kashList[0]]||0}">
+    <div class="modal-foot"><button class="btn primary" onclick="doAssignTzaharon(${reqId})">${ic('check')} שבץ</button><button class="btn" onclick="closeModal()">${ic('x')} ביטול</button></div>`);
+}
+function tzCapQty(){
+  const kash=$('#tz_kash').value.replace(/ \(.*$/,'');
+  const max=DB.tzaharon.inventory[kash]||0;
+  const q=$('#tz_qty'); q.max=max; if(+q.value>max) q.value=max;
+}
+function doAssignTzaharon(reqId){
+  const r=DB.requests.find(x=>x.id===reqId);
+  const kash=$('#tz_kash').value.replace(/ \(.*$/,''); const qty=+$('#tz_qty').value;
+  if(!$('#tz_date').value){ toast('יש לבחור תאריך'); return; }
+  if(!(qty>=1 && qty<=DB.tzaharon.inventory[kash])){ toast('מספר המנות חייב להיות בין 1 למלאי הזמין'); return; }
+  r.assignments.push({vid:'tzaharon', state:'active', date:$('#tz_date').value, type:'cook', when:'צהרון · '+kash, needDeliver:false, portions:qty, kashrut:kash});
+  DB.tzaharon.inventory[kash]-=qty; DB.tzaharon.lastUpdated=TODAY_STR;
+  closeModal(); toast(`שובצו ${qty} מנות צהרון (${kash})`); go('reqcard',reqId);
+}
+
+/* ============================================================
+   REQUEST CARD — manage assignments (3.3.3) + notes (2.4)
+   ============================================================ */
+function coverLineHtml(r){
+  const need=neededTypes(r), cov=coveredTypes(r);
+  const needBadges = need.map(t=>`<span class="chip ${cov.has(t)?'g':'r'}">${cov.has(t)?ic('check'):ic('x')} ${esc(typeName(t))}</span>`).join(' ');
+  return `<b>כיסוי צרכים:</b> ${needBadges} ${deliveryGap(r)?`<span class="chip ship">${ic('truck')} חסר שינוע</span>`:''}`;
+}
+function assignRowsHtml(r){
+  const rows = r.assignments.map((a,i)=>{
+    const v=volById(a.vid); const isT=a.vid==='tzaharon';
+    const stChip = a.state==='active'?'<span class="chip g">פעיל</span>':'<span class="chip y">אופציונלי</span>';
+    return `<tr>
+      <td><b>${esc(v?v.name:'?')}</b> ${v&&v.status==='deleted'?'<span class="chip r">נמחקה</span>':''}</td>
+      <td>${stChip}</td>
+      <td>${a.date?fmtD(a.date):'<span class="muted">—</span>'}</td>
+      <td>${a.type?esc(typeName(a.type)):'<span class="muted">—</span>'}${a.portions?` · ${a.portions} מנות`:''}</td>
+      <td class="muted">${esc(a.when||'—')}</td>
+      <td>${(a.type==='cook'||isT)?`<label style="font-size:13px;display:inline-flex;gap:6px;align-items:center"><input type="checkbox" ${a.needDeliver?'checked':''} onchange="toggleDeliver(${r.id},${i})"> נדרש שינוע</label>`:'—'}</td>
+      <td class="right"><div class="btn-row">
+        ${a.state==='optional'?`<button class="btn sm primary" onclick="promote(${r.id},${i})">${ic('check')} סמן פעיל</button>`:(isT?'':`<button class="btn sm" onclick="promote(${r.id},${i})">${ic('pencil')} עריכה</button><button class="btn sm" onclick="revertAssign(${r.id},${i})">${ic('undo')} החזר לאופציונלי</button>`)}
+        <button class="btn sm danger" onclick="removeAssign(${r.id},${i})">${ic('trash')} הסר</button>
+      </div></td></tr>`;
+  }).join('');
+  return rows||'<tr><td colspan="7" class="muted">טרם שובצו מתנדבות — פתחי את "חיפוש ושידוך" למטה כדי לשבץ</td></tr>';
+}
+VIEWS.reqcard = (reqId) => {
+  const r=DB.requests.find(x=>x.id===reqId);
+  window.__searchReq = r;
+  ensureMatch(r);
+  const s=STATUS_META[assignStatus(r)];
+  const lifeChip = reqIsActive(r)?'<span class="chip g">פעילה</span>':'<span class="chip gray">הסתיימה</span>';
+
+  const notesHtml = r.notes.length ? r.notes.map(n=>`<div style="padding:10px 0;border-bottom:1px solid var(--line-2)">
+    <span class="chip ${n.src==='מתנדבת'?'b':'p'}">${n.src}${n.vid?' · '+esc(volById(n.vid)?.name||''):''}</span>
+    <span class="muted" style="font-size:12px">${fmtD(n.date)}</span><div style="margin-top:4px">${esc(n.text)}</div></div>`).join('') : '<p class="muted" style="margin:0">אין הערות</p>';
+
+  return `
+  <div class="rc-wrap">
+  <div class="rc-req" id="rcReq">
+  <div class="panel">
+    <div class="row-sp">
+      <h3>${ic('archive')} ${esc(r.name)} ${lifeChip}</h3>
+      <div class="btn-row">
+        <span class="chip"><span class="dot ${s.dot}"></span> ${s.txt}</span>
+        <button class="btn" onclick="go('request',${r.id})">${ic('pencil')} עריכת פרטים</button>
+      </div>
+    </div>
+    <div class="form-grid" style="font-size:14px;row-gap:10px">
+      <div><span class="muted">כתובת:</span> ${esc(r.address)}</div><div><span class="muted">ילדים:</span> ${r.children}${(r.types||[]).includes('babysit')||r.babysitHours||r.babysitAges?`<div style="margin-top:4px"><span class="muted">גילאים:</span> ${esc(r.babysitAges||'—')}</div><div style="margin-top:4px"><span class="muted">שעות שמירה:</span> ${esc(r.babysitHours||'—')}</div>`:''}</div>
+      <div><span class="muted">תאריכים:</span> ${fmtD(r.from)}–${fmtD(r.to)}</div><div><span class="muted">כשרות מועדפת:</span> ${r.kashrut.join(', ')||'אין העדפה'}</div>
+      <div><span class="muted">צהרון:</span> ${r.tzaharon}</div>
+      ${r.otherDesc?`<div class="full"><span class="muted">תיאור "אחר":</span> ${esc(r.otherDesc)}</div>`:''}
+      ${r.note?`<div class="full"><span class="muted">הערות:</span> ${esc(r.note)}</div>`:''}
+    </div>
+    <div style="margin-top:14px" id="coverLine">${coverLineHtml(r)}</div>
+    <label class="f" style="margin-top:14px">סימון ידני</label>
+    <label style="font-size:14px;display:inline-flex;gap:8px;align-items:center"><input type="checkbox" ${r.manualFull?'checked':''} onchange="toggleManualFull(${reqId})"> שובץ מלא ידני (גובר על החישוב האוטומטי)</label>
+  </div>
+  <div class="panel">
+    <div class="row-sp"><h3>${ic('msg')} הערות ומשוב</h3><button class="btn sm" onclick="addNote(${reqId})">${ic('plus')} הוספת הערה</button></div>
+    ${notesHtml}
+  </div>
+  <div class="panel">
+    <div class="row-sp"><h3>${ic('users')} מתנדבות משובצות <span class="muted" id="assignCount" style="font-weight:400">(${r.assignments.length})</span></h3><button class="btn sm" onclick="openMatch(${reqId})">${ic('plus')} הוסף שיבוץ</button></div>
+    <table><thead><tr><th>מתנדבת</th><th>מצב</th><th>תאריך</th><th>סוג</th><th>שעות</th><th>שינוע</th><th></th></tr></thead>
+    <tbody id="assignBody">${assignRowsHtml(r)}</tbody></table>
+  </div>
+  </div>
+  ${matchSectionHtml(r)}
+  </div>`;
+};
+AFTER.reqcard = () => { if(MATCH.open) applyFilters(); };
+
+function promote(reqId,i){
+  const r=DB.requests.find(x=>x.id===reqId); const a=r.assignments[i]; const v=volById(a.vid);
+  const isActive=a.state==='active';
+  const typeOpts=(v.types||['cook']).map(t=>`<option value="${t}" ${a.type===t?'selected':''}>${esc(typeName(t))}</option>`).join('');
+  showModal(`<h3>${isActive?'עריכת שיבוץ':'סימון פעיל'} — ${esc(v.name)}</h3><p class="muted" style="margin:0 0 4px">לאחר תיאום טלפוני, הוסיפי את סוג ההתנדבות והשעות/ימים.</p>
+    <label class="f">תאריך השיבוץ</label><input type="date" id="pr_date" value="${a.date||r.from}" min="${r.from}" max="${r.to}">
+    <label class="f">סוג התנדבות שנבחר</label><select id="pr_type" onchange="togglePrHours()">${typeOpts}</select>
+    <div id="pr_hoursWrap"><label class="f">שעות</label><input id="pr_when" value="${esc(a.when||'')}" placeholder="לדוגמה: א-ה 09:00-13:00"></div>
+    <label id="pr_deliverWrap" style="font-size:14px;margin-top:12px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="pr_deliver" ${(isActive?a.needDeliver:v.cook?.alwaysDeliver)?'checked':''}> נדרש שינוע לאוכל ${v.cook?.alwaysDeliver?'(נגזר מ"נדרש שינוע תמיד")':''}</label>
+    <div class="modal-foot"><button class="btn primary" onclick="doPromote(${reqId},${i})">${ic('check')} אישור</button><button class="btn" onclick="closeModal()">${ic('x')} ביטול</button></div>`);
+  togglePrHours();
+}
+function togglePrHours(){
+  const t=DB.types.find(x=>x.id===$('#pr_type').value);
+  $('#pr_hoursWrap').classList.toggle('hidden', !t?.byHours);
+  $('#pr_deliverWrap').classList.toggle('hidden', $('#pr_type').value!=='cook');
+}
+function doPromote(reqId,i){
+  const r=DB.requests.find(x=>x.id===reqId); const a=r.assignments[i];
+  const byHours=!!DB.types.find(x=>x.id===$('#pr_type').value)?.byHours;
+  const when=byHours?$('#pr_when').value.trim():'';
+  if(byHours && !when){ toast('יש למלא שעות לסוג התנדבות זה'); return; }
+  const wasActive=a.state==='active';
+  a.state='active'; a.date=$('#pr_date').value; a.type=$('#pr_type').value; a.when=when; a.needDeliver=a.type==='cook' && $('#pr_deliver').checked;
+  const v=volById(a.vid); if(!wasActive && v&&v.id!=='tzaharon'){ v.last3m++; v.total++; }
+  closeModal(); go('reqcard',reqId); toast('המתנדבת סומנה כפעילה');
+}
+function revertAssign(reqId,i){
+  const r=DB.requests.find(x=>x.id===reqId); const a=r.assignments[i]; const v=volById(a.vid);
+  if(v && v.id!=='tzaharon'){ v.last3m=Math.max(0,v.last3m-1); v.total=Math.max(0,v.total-1); }
+  Object.assign(a,{state:'optional', date:null, type:null, when:'', needDeliver:false});
+  go('reqcard',reqId); toast('השיבוץ הוחזר למצב אופציונלי');
+}
+function removeAssign(reqId,i){
+  const r=DB.requests.find(x=>x.id===reqId); const a=r.assignments[i]; const v=volById(a.vid);
+  if(a.state==='active'){
+    showModal(`<h3>הסרת מתנדבת פעילה</h3><p>הסרת <b>${esc(v?.name)}</b> מהבקשה.</p>
+      <div class="alert y">${ic('alert')} האם סוכם איתה שלא תתנדב הפעם?</div>
+      <div class="modal-foot"><button class="btn danger" onclick="doRemove(${reqId},${i})">${ic('trash')} כן, הסר</button><button class="btn" onclick="closeModal()">${ic('x')} ביטול</button></div>`);
+  } else { doRemove(reqId,i); }
+}
+function doRemove(reqId,i){
+  const r=DB.requests.find(x=>x.id===reqId); const a=r.assignments[i];
+  if(a.vid==='tzaharon' && a.portions && a.kashrut){ DB.tzaharon.inventory[a.kashrut]+=a.portions; } // return stock
+  else if(a.state==='active'){ const v=volById(a.vid); if(v){ v.last3m=Math.max(0,v.last3m-1); v.total=Math.max(0,v.total-1);} }
+  r.assignments.splice(i,1); closeModal(); go('reqcard',reqId); toast('הוסר מהבקשה');
+}
+function toggleDeliver(reqId,i){ const r=DB.requests.find(x=>x.id===reqId); r.assignments[i].needDeliver=!r.assignments[i].needDeliver; go('reqcard',reqId); }
+function toggleManualFull(reqId){ const r=DB.requests.find(x=>x.id===reqId); r.manualFull=!r.manualFull; go('reqcard',reqId); toast(r.manualFull?'סומן "שובץ מלא" ידנית':'בוטל הסימון הידני'); }
+function addNote(reqId){
+  const r=DB.requests.find(x=>x.id===reqId);
+  const vopts=r.assignments.filter(a=>a.vid!=='tzaharon').map(a=>{const v=volById(a.vid);return `<option value="${a.vid}">${esc(v?.name)}</option>`;}).join('');
+  showModal(`<h3>${ic('msg')} הוספת הערה / משוב</h3>
+    <label class="f">מקור</label><select id="nt_src" onchange="$('#nt_volWrap').classList.toggle('hidden',this.value!=='מתנדבת')"><option>משפחה</option><option>מתנדבת</option></select>
+    <div id="nt_volWrap" class="hidden"><label class="f">מתנדבת</label><select id="nt_vol">${vopts||'<option value="">—</option>'}</select></div>
+    <label class="f">תוכן</label><textarea id="nt_text"></textarea>
+    <div class="modal-foot"><button class="btn primary" onclick="doAddNote(${reqId})">${ic('check')} שמירה</button><button class="btn" onclick="closeModal()">${ic('x')} ביטול</button></div>`);
+}
+function doAddNote(reqId){
+  const r=DB.requests.find(x=>x.id===reqId); const src=$('#nt_src').value; const text=$('#nt_text').value.trim();
+  if(!text){ toast('יש להזין תוכן'); return; }
+  r.notes.push({src, vid:src==='מתנדבת'?+$('#nt_vol').value:null, text, date:TODAY_STR});
+  closeModal(); go('reqcard',reqId); toast('ההערה נשמרה');
+}
+
+/* ============================================================
+   3.5 REQUEST HISTORY
+   ============================================================ */
+let HQ = {text:'',from:'',to:'',type:'',life:'all',assign:'',kash:'',vid:''};
+VIEWS.history = () => {
+  return `<div class="panel">
+    <h3>${ic('archive')} היסטוריית בקשות</h3>
+    <div class="filters">
+      <div><label class="f">חיפוש חופשי</label><input id="hq_text" placeholder="שם / כתובת / הערות" oninput="renderHistory()"></div>
+      <div><label class="f">מתאריך</label><input type="date" id="hq_from" oninput="renderHistory()"></div>
+      <div><label class="f">עד תאריך</label><input type="date" id="hq_to" oninput="renderHistory()"></div>
+      <div><label class="f">סוג בקשה</label><select id="hq_type" onchange="renderHistory()"><option value="">הכל</option>${DB.types.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></div>
+      <div><label class="f">סטטוס בקשה</label><select id="hq_life" onchange="renderHistory()"><option value="all">הכל</option><option value="active">פעילה</option><option value="done">הסתיימה</option></select></div>
+      <div><label class="f">סטטוס שיבוץ</label><select id="hq_assign" onchange="renderHistory()"><option value="">הכל</option><option value="none">לא שובץ</option><option value="partial">חלקי</option><option value="full">מלא</option></select></div>
+      <div><label class="f">כשרות</label><select id="hq_kash" onchange="renderHistory()"><option value="">הכל</option>${DB.kashrut.map(k=>`<option>${esc(k)}</option>`).join('')}</select></div>
+      <div><label class="f">מתנדבת משובצת</label><select id="hq_vid" onchange="renderHistory()"><option value="">הכל</option>${DB.volunteers.map(v=>`<option value="${v.id}">${esc(v.name)}</option>`).join('')}</select></div>
+    </div>
+    <div id="histResults"></div>
+  </div>`;
+};
+AFTER.history = () => renderHistory();
+function renderHistory(){
+  const q={text:($('#hq_text')?.value||'').toLowerCase(),from:$('#hq_from')?.value,to:$('#hq_to')?.value,
+    type:$('#hq_type')?.value,life:$('#hq_life')?.value,assign:$('#hq_assign')?.value,kash:$('#hq_kash')?.value,vid:$('#hq_vid')?.value};
+  let list=DB.requests.filter(r=>{
+    if(q.life==='active'&&!reqIsActive(r))return false;
+    if(q.life==='done'&&reqIsActive(r))return false;
+    if(q.type&&!r.types.includes(q.type))return false;
+    if(q.assign&&assignStatus(r)!==q.assign)return false;
+    if(q.kash&&!r.kashrut.includes(q.kash))return false;
+    if(q.vid&&!r.assignments.some(a=>String(a.vid)===q.vid))return false;
+    if(q.from&&parseD(r.to)<parseD(q.from))return false;
+    if(q.to&&parseD(r.from)>parseD(q.to))return false;
+    if(q.text){ const hay=(r.name+' '+r.address+' '+(r.note||'')+' '+r.notes.map(n=>n.text).join(' ')).toLowerCase(); if(!hay.includes(q.text))return false; }
+    return true;
+  });
+  const rows=list.map(r=>{const s=STATUS_META[assignStatus(r)];return `<tr>
+    <td><a href="#" onclick="go('reqcard',${r.id});return false"><b>${esc(r.name)}</b></a></td>
+    <td class="muted">${esc(r.address)}</td>
+    <td>${fmtD(r.from)}–${fmtD(r.to)}</td>
+    <td>${reqIsActive(r)?'<span class="chip g">פעילה</span>':'<span class="chip gray">הסתיימה</span>'}</td>
+    <td><span class="dot ${s.dot}"></span>${s.txt}</td>
+    <td>${r.assignments.map(a=>esc(volById(a.vid)?.name||'')).join(', ')||'<span class="muted">—</span>'}</td>
+    <td class="right">${r.notes.length?`<span class="chip b">${r.notes.length} הערות</span>`:''}</td>
+  </tr>`;}).join('');
+  $('#histResults').innerHTML = rows
+    ? `<p class="muted" style="font-size:13px;margin:0 0 10px">${list.length} תוצאות</p>
+       <table><thead><tr><th>משפחה</th><th>כתובת</th><th>תאריכים</th><th>סטטוס</th><th>שיבוץ</th><th>מתנדבות</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    : `<div class="empty"><div class="em-ic">${ic('archive')}</div><div class="em-ttl">לא נמצאו בקשות</div><div class="em-sub">נסי לשנות את תנאי החיפוש או לנקות את המסננים.</div></div>`;
+}
+
+/* ============================================================
+   3.0 VOLUNTEER TYPES
+   ============================================================ */
+VIEWS.types = () => {
+  const inUse = id => DB.volunteers.some(v=>v.types.includes(id)) || DB.requests.some(r=>r.types.includes(id));
+  const rows=DB.types.map(t=>`<tr>
+    <td><b>${esc(t.name)}</b> ${t.system?'<span class="chip p">מערכת</span>':''}</td>
+    <td>${t.byHours?'<span class="chip b">לפי שעות</span>':'<span class="muted">—</span>'}</td>
+    <td>${t.active?'<span class="chip g">פעיל</span>':'<span class="chip gray">מושבת</span>'}</td>
+    <td class="muted">${esc(t.note||'')}</td>
+    <td class="right"><div class="btn-row">
+      ${t.system?'<span class="muted" style="font-size:13px">קבוע</span>':`
+        <button class="btn sm" onclick="editType('${t.id}')">${ic('pencil')} עריכה</button>
+        <button class="btn sm" onclick="toggleType('${t.id}')">${t.active?'השבתה':'הפעלה'}</button>
+        <button class="btn sm danger" ${inUse(t.id)?'disabled title="בשימוש — ניתן להשבית"':''} onclick="delType('${t.id}')">${ic('trash')} מחיקה</button>`}
+    </div></td></tr>`).join('');
+  return `<div class="panel">
+    <div class="row-sp"><h3>${ic('tag')} ניהול סוגי התנדבות</h3><button class="btn primary" onclick="editType()">${ic('plus')} סוג חדש</button></div>
+    <table><thead><tr><th>שם הסוג</th><th>לפי שעות</th><th>פעיל</th><th>הערות</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="note-row" style="margin-top:14px">${ic('info')} לא ניתן למחוק סוג שמשויך למתנדבות/בקשות (ניתן להשבית). "אחר" הוא סוג מערכת קבוע.</p>
+  </div>`;
+};
+function toggleType(id){ const t=DB.types.find(x=>x.id===id); t.active=!t.active; go('types'); toast(t.active?'הסוג הופעל':'הסוג הושבת'); }
+function delType(id){ const i=DB.types.findIndex(x=>x.id===id); DB.types.splice(i,1); go('types'); toast('הסוג נמחק'); }
+function editType(id){
+  const t=id?DB.types.find(x=>x.id===id):{name:'',active:true,byHours:false,note:''};
+  showModal(`<h3>${ic('tag')} ${id?'עריכת':'הוספת'} סוג התנדבות</h3>
+    <label class="f">שם הסוג *</label><input id="tp_name" value="${esc(t.name)}">
+    <label class="f">הערות</label><input id="tp_note" value="${esc(t.note||'')}">
+    <label style="font-size:14px;margin-top:12px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="tp_hours" ${t.byHours?'checked':''}> סוג לפי שעות (דורש הזנת שעות בעת שיבוץ)</label>
+    <label style="font-size:14px;margin-top:12px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="tp_active" ${t.active?'checked':''}> פעיל (זמין לבחירה בטפסים)</label>
+    <div class="modal-foot"><button class="btn primary" onclick="saveType('${id||''}')">${ic('check')} שמירה</button><button class="btn" onclick="closeModal()">${ic('x')} ביטול</button></div>`);
+}
+function saveType(id){
+  const name=$('#tp_name').value.trim(); if(!name){ toast('חובה שם'); return; }
+  if(id){ const t=DB.types.find(x=>x.id===id); t.name=name; t.note=$('#tp_note').value; t.byHours=$('#tp_hours').checked; t.active=$('#tp_active').checked; }
+  else DB.types.push({id:'t'+Date.now(),name,note:$('#tp_note').value,byHours:$('#tp_hours').checked,active:$('#tp_active').checked,system:false});
+  closeModal(); go('types'); toast('הסוג נשמר');
+}
+
+/* ============================================================
+   3.0.1 KASHRUT & TZAHARON INVENTORY
+   ============================================================ */
+function tzInventoryPanelHtml(){
+  const inv=DB.tzaharon.inventory;
+  const cells=Object.keys(inv).map(k=>`<div class="inv-cell"><div class="k">${esc(k)}</div><div class="v">${inv[k]}</div></div>`).join('');
+  return `
+  <div class="panel">
+    <div class="row-sp">
+      <h3>${ic('box')} מלאי צהרון <span class="muted" style="font-weight:400">· עודכן ${fmtD(DB.tzaharon.lastUpdated)}</span></h3>
+      <button class="btn sm" style="margin-inline-start:auto" onclick="toggleLoadPortions()" aria-expanded="${LOAD_OPEN}">${ic('plus')} טעינת מנות</button>
+    </div>
+    <div class="inv-grid">${cells}</div>
+    <p class="note-row" style="margin-top:14px">${ic('info')} כל כשרות יורדת אוטומטית עם שיבוץ פעיל של צהרון מאותה כשרות, לפי המנות שהוקצו.</p>
+    ${LOAD_OPEN?`<div class="row-sp" style="margin-top:12px;background:var(--sub);border:1px solid var(--line-2);padding:14px;border-radius:10px">
+      <div><label class="f" style="margin-top:0">כשרות</label><select id="ld_kash"><option value="" disabled selected hidden></option>${DB.kashrut.map(k=>`<option>${esc(k)}</option>`).join('')}</select></div>
+      <div><label class="f" style="margin-top:0">כמות מנות שהגיעו</label><input type="number" id="ld_qty" min="1"></div>
+      <div style="align-self:end;display:flex;gap:8px"><button class="btn primary" onclick="loadPortions()">${ic('check')} אישור</button><button class="btn" onclick="toggleLoadPortions()">${ic('x')} ביטול</button></div>
+    </div>`:''}
+  </div>`;
+}
+let LOAD_OPEN=false;
+function toggleLoadPortions(){ LOAD_OPEN=!LOAD_OPEN; go('dashboard'); }
+VIEWS.settings = () => {
+  const inv=DB.tzaharon.inventory;
+  const kashList=DB.kashrut.map(k=>`<span class="chip gray" style="padding:4px 8px;font-size:13px">${esc(k)} <a href="#" onclick="delKash('${esc(k)}');return false" style="color:#9f1d1d;display:inline-flex;margin-inline-start:4px" aria-label="הסרת ${esc(k)}">${ic('x')}</a></span>`).join(' ');
+  const log=DB.tzaharon.log.slice().reverse().map(l=>`<tr><td>${fmtD(l.date)}</td><td>${esc(l.kashrut)}</td><td class="right"><span class="chip g">+${l.qty}</span></td></tr>`).join('');
+  return `
+  <div class="panel">
+    <h3>${ic('tag')} ניהול כשרויות</h3>
+    <div style="margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap">${kashList}</div>
+    <div class="row-sp"><input id="newKash" placeholder="הוספת כשרות חדשה" style="max-width:260px"><button class="btn primary" onclick="addKash()">${ic('plus')} הוספה</button></div>
+  </div>
+  <div class="panel">
+    <h3>${ic('list')} תיעוד טעינות</h3>
+    <table><thead><tr><th>תאריך</th><th>כשרות</th><th class="right">כמות</th></tr></thead><tbody>${log}</tbody></table>
+  </div>`;
+};
+function addKash(){ const v=$('#newKash').value.trim(); if(!v)return; if(DB.kashrut.includes(v)){toast('כבר קיים');return;} DB.kashrut.push(v); if(!(v in DB.tzaharon.inventory))DB.tzaharon.inventory[v]=0; go('settings'); toast('כשרות נוספה'); }
+function delKash(k){ DB.kashrut=DB.kashrut.filter(x=>x!==k); go('settings'); toast('כשרות הוסרה'); }
+function loadPortions(){ const k=$('#ld_kash').value; const q=+$('#ld_qty').value;
+  if(!k){ toast('יש לבחור כשרות'); return; }
+  if(!(q>=1)){ toast('יש להזין כמות מנות'); return; }
+  DB.tzaharon.inventory[k]=(DB.tzaharon.inventory[k]||0)+q; DB.tzaharon.lastUpdated=TODAY_STR;
+  DB.tzaharon.log.push({date:TODAY_STR,qty:q,kashrut:k}); LOAD_OPEN=false; go('dashboard'); toast(`נוספו ${q} מנות (${k})`); }
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+/* ============================================================
+   SERVER SYNC — persistence layer
+   ============================================================ */
+const SAVE_DELAY = 400;
+let _saveTimer = null, _saving = false, _dirtyWhileSaving = false, _lastSnapshot = '';
+
+function snapshotState(){ return JSON.stringify(Object.assign({}, DB, {reqSeq, volSeq, version: undefined})); }
+function applyServerState(s){
+  _stateVersion = s.version;
+  reqSeq = s.reqSeq; volSeq = s.volSeq;
+  DB = s;
+  delete DB.version; delete DB.reqSeq; delete DB.volSeq;
+  _lastSnapshot = snapshotState();
+}
+function setSaveStatus(txt, bad){
+  const el = $('#saveStatus'); if(!el) return;
+  el.textContent = txt; el.style.color = bad ? 'var(--status-red)' : 'var(--muted)';
+}
+function persist(){
+  if(!DB) return;
+  clearTimeout(_saveTimer);
+  setSaveStatus('שומר…');
+  _saveTimer = setTimeout(flushSave, SAVE_DELAY);
+}
+async function flushSave(){
+  clearTimeout(_saveTimer); _saveTimer = null;
+  if(_saving){ _dirtyWhileSaving = true; return; }
+  const snap = snapshotState();
+  if(snap === _lastSnapshot){ setSaveStatus('נשמר'); return; }
+  _saving = true;
+  try {
+    const res = await fetch('/api/state', {method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({version:_stateVersion, state:JSON.parse(snap)})});
+    if(res.status === 401){ showLogin(); setSaveStatus('נדרשת התחברות מחדש', true); }
+    else if(res.status === 409){
+      applyServerState(await res.json());
+      go(current);
+      toast('הנתונים עודכנו במקום אחר — השינוי האחרון לא נשמר');
+      setSaveStatus('נטען מחדש', true);
+    }
+    else if(!res.ok) throw new Error('save failed');
+    else { _stateVersion = (await res.json()).version; _lastSnapshot = snap; setSaveStatus('נשמר'); }
+  } catch(e){
+    toast('השמירה נכשלה'); $('#toast').style.background = 'var(--status-red)';
+    setTimeout(()=>{ $('#toast').style.background = ''; }, 2500);
+    setSaveStatus('השמירה נכשלה', true);
+  } finally {
+    _saving = false;
+    if(_dirtyWhileSaving){ _dirtyWhileSaving = false; persist(); }
+  }
+}
+
+// Every function that mutates DB is wrapped so it persists after running.
+['saveVol','applyFreeze','applyUnfreeze','confirmDelete','restoreVol','saveReq','addToReq','doAssignTzaharon',
+ 'doPromote','revertAssign','doRemove','toggleDeliver','toggleManualFull','doAddNote','toggleType','delType',
+ 'saveType','addKash','delKash','loadPortions'].forEach(name=>{
+  const fn = window[name];
+  window[name] = function(){ const out = fn.apply(this, arguments); persist(); return out; };
+});
+
+window.addEventListener('beforeunload', ()=>{
+  if(!DB || (_saveTimer === null && !_saving)) return;
+  const snap = snapshotState();
+  if(snap === _lastSnapshot) return;
+  fetch('/api/state', {method:'PUT', keepalive:true, headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({version:_stateVersion, state:JSON.parse(snap)})});
+});
+
+/* ============================================================
+   LOGIN + BOOT
+   ============================================================ */
+function showLogin(){ $('#loginOverlay').classList.add('show'); setTimeout(()=>$('#loginPass').focus(), 50); }
+async function doLogin(ev){
+  ev.preventDefault();
+  const err = $('#loginErr'); err.textContent = '';
+  try {
+    const res = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: $('#loginPass').value})});
+    if(!res.ok){ err.textContent = 'סיסמה שגויה'; return; }
+    $('#loginPass').value = '';
+    $('#loginOverlay').classList.remove('show');
+    await loadAndStart();
+  } catch(e){ err.textContent = 'שגיאת תקשורת עם השרת'; }
+}
+async function doLogout(){
+  await fetch('/api/logout', {method:'POST'});
+  DB = null; location.reload();
+}
+async function loadAndStart(){
+  const res = await fetch('/api/state');
+  if(res.status === 401){ showLogin(); return; }
+  applyServerState(await res.json());
+  setSaveStatus('נשמר');
+  go('dashboard');
+}
+(async function boot(){
+  try {
+    const s = await (await fetch('/api/session')).json();
+    if(s.auth) await loadAndStart(); else showLogin();
+  } catch(e){ showLogin(); $('#loginErr').textContent = 'אין תקשורת עם השרת'; }
+})();
+</script>
+</body>
+</html>
