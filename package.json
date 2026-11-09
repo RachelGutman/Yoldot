@@ -1,0 +1,16 @@
+{
+  "name": "volunteer-management",
+  "version": "1.0.0",
+  "private": true,
+  "description": "מערכת ניהול מתנדבות - שרת Express עם אחסון בקובץ JSON",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-session": "^1.18.0",
+    "mongodb": "^7.8.0"
+  }
+}
